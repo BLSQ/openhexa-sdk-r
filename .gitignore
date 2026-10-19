@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.idea/
+*.Rproj
+*.tar.gz
+openhexa.Rcheck/
+__pycache__/
+.Renviron
+inst/doc
+/doc/
+/Meta/

@@ -1,0 +1,41 @@
+Package: openhexa
+Title: R Client for the 'OpenHEXA' Data Platform
+Version: 0.1.0
+Authors@R:
+    person("Bluesquare", email = "dev@bluesquarehub.com", role = c("aut", "cre", "cph"))
+Description: Work with 'OpenHEXA' workspaces from R: read and publish datasets, read and write workspace files,
+    run saved queries, publish web apps, create notebooks,
+    connect to the workspace database and external connections (DHIS2, IASO, PostgreSQL, S3, GCS), and run
+    pipelines. Talks to the 'OpenHEXA' 'GraphQL' API.
+License: MIT + file LICENSE
+URL: https://github.com/BLSQ/openhexa-sdk-r
+BugReports: https://github.com/BLSQ/openhexa-sdk-r/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli (>= 3.6.0),
+    httr2 (>= 1.1.0),
+    jsonlite,
+    rlang (>= 1.1.0),
+    tibble,
+    tools,
+    utils,
+    vctrs
+Suggests:
+    arrow,
+    DBI,
+    htmltools,
+    knitr,
+    readr,
+    readxl,
+    rmarkdown,
+    RPostgres,
+    rstudioapi,
+    shiny,
+    testthat (>= 3.0.0),
+    withr
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.1

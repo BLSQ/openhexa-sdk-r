@@ -1,0 +1,10 @@
+# GraphQL configuration for IDEs (JetBrains GraphQL plugin, VS Code GraphQL extension): validation and autocompletion
+# of the operations in inst/graphql/ against the OpenHEXA schema.
+# Refresh the schema with `make schema`, or from the IDE by running the introspection of the `production` endpoint.
+schema: tools/schema.graphql
+documents: inst/graphql/*.graphql
+extensions:
+  endpoints:
+    production:
+      url: https://api.openhexa.org/graphql/
+      introspect: true

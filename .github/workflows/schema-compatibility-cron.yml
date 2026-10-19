@@ -1,0 +1,36 @@
+name: Schema compatibility check (daily)
+on:
+  schedule:
+    - cron: "0 9 * * *"       # daily at 09:00 UTC
+  workflow_dispatch:            # allow manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - run: pip install graphql-core requests
+
+      - name: Check schema compatibility
+        run: python tools/validate_queries.py
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2.4.0
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: "#openhexa-alerts"
+          SLACK_USERNAME: "Schema Compatibility Check"
+          SLACK_COLOR: failure
+          SLACK_ICON_EMOJI: ":warning:"
+          SLACK_TITLE: "GraphQL schema compatibility check failed (R SDK)"
+          SLACK_MESSAGE: "The OpenHEXA R SDK has GraphQL operations that are invalid against production. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+          SLACK_FOOTER: "-"
+          MSG_MINIMAL: true

@@ -1,0 +1,261 @@
+---
+title: "Getting started with openhexa"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with openhexa}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+## Overview
+
+[OpenHEXA](https://github.com/BLSQ/openhexa) is an open-source data integration platform developed by
+[Bluesquare](https://bluesquarehub.com). Data and analyses are organised in **workspaces**, which hold files, versioned
+**datasets**, a PostgreSQL **database** with **saved queries**, **pipelines**, **web apps** and **connections** to
+external systems such as DHIS2 or IASO.
+
+The openhexa package lets you work with all of these from R: from an OpenHEXA notebook, from RStudio on your laptop,
+or from a script running anywhere. You never deal with the API: you list things, select a workspace, and get data
+frames back.
+
+## Installation
+
+The package is preinstalled in OpenHEXA notebooks. Elsewhere, install the latest release from GitHub:
+
+```r
+# install.packages("remotes")
+remotes::install_github("BLSQ/openhexa-sdk-r")
+```
+
+### Installing a specific version
+
+Releases are tagged on GitHub (`v0.1.0`, `v0.2.0`, ...). R keeps a single version of a package per library, so the
+version is chosen when installing:
+
+```r
+remotes::install_github("BLSQ/openhexa-sdk-r@v0.2.0")
+```
+
+To pin the version for a project, use [renv](https://rstudio.github.io/renv/): it records the version in a lockfile
+that restores the same environment on another computer, or in an OpenHEXA workspace.
+
+```r
+renv::install("BLSQ/openhexa-sdk-r@v0.2.0")
+renv::snapshot()
+```
+
+A script can also check the installed version:
+
+```r
+stopifnot(packageVersion("openhexa") >= "0.2.0")
+```
+
+Versions follow [semantic versioning](https://semver.org). Before 1.0.0, breaking changes increase the minor version
+(0.1.x to 0.2.0), so pinning the minor version protects you from them.
+
+## Authenticate
+
+The package is installed in the R image of OpenHEXA notebooks, and the connection is already configured there: skip
+this step. The same goes for notebook pipelines written in R, where the access is limited to the workspace of the
+pipeline, for the duration of the run.
+
+Elsewhere, generate an API token from your OpenHEXA user settings, then log in. In an interactive session, you are
+prompted for the token, so that it doesn't end up in your scripts:
+
+```{r}
+library(openhexa)
+
+login(server_url = "https://api.openhexa.org")
+#> OpenHEXA API token: ****
+#> ✔ Authenticated as Ada Lovelace on https://api.openhexa.org.
+```
+
+In batch mode (scheduled scripts, CI), pass the token, or set the `HEXA_SERVER_URL`, `HEXA_TOKEN` and `HEXA_WORKSPACE`
+environment variables, e.g. in your `.Renviron`:
+
+```{r}
+login(token = Sys.getenv("OPENHEXA_TOKEN"), server_url = "https://api.openhexa.org")
+```
+
+## Explore
+
+List the workspaces you have access to, and select the one to work with. Every function then uses it by default:
+
+```{r}
+list_workspaces()
+
+set_workspace("malaria-burkina")
+#> ✔ Using workspace Malaria Burkina Faso ("malaria-burkina").
+```
+
+Then list what the workspace contains:
+
+```{r}
+# datasets, including the ones shared with the workspace
+list_datasets()
+
+# files, at the root of the workspace or in a folder
+list_files()
+list_files("data/")
+
+# saved queries of the Data Studio
+list_saved_queries()
+
+# web apps, pipelines and connections
+list_webapps()
+list_pipelines()
+list_connections()
+```
+
+Every function also accepts a `workspace` argument, to work with another workspace without switching:
+
+```{r}
+list_datasets(workspace = "malaria-niger")
+```
+
+## Get data
+
+### Files
+
+`get_file()` reads a workspace file into R, with a reader picked from its extension: CSV, TSV, Parquet (requires
+arrow), Excel (requires readxl), JSON and RDS. Inside OpenHEXA, the file is read straight from the workspace;
+elsewhere, it is downloaded first.
+
+```{r}
+population <- get_file("data/population_2024.csv")
+
+# pass a reader for other formats
+districts <- get_file("data/districts.geojson", reader = sf::st_read) # requires sf
+```
+
+`download_file()` downloads a file without reading it:
+
+```{r}
+download_file("reports/annual_report.pdf", dest = "annual_report.pdf")
+```
+
+### Datasets
+
+Datasets are versioned collections of files. Look at their versions and files, then read one file, or stack all the
+tables of a version:
+
+```{r}
+get_dataset("routine-data")
+list_dataset_versions("routine-data")
+list_dataset_files("routine-data")
+
+# one file, from the latest version or a given one
+cases <- get_dataset_file("routine-data", "cases.parquet")
+cases_q1 <- get_dataset_file("routine-data", "cases.parquet", version = "2024-Q1")
+
+# all the tables of a version in a single data frame, with a `file` column
+all_cases <- get_dataset_data("routine-data", pattern = "^cases_")
+```
+
+### Saved queries
+
+Saved queries are SQL queries on the workspace database, written in the Data Studio. Run them to get their result as a
+data frame; you don't need the database credentials:
+
+```{r}
+monthly <- run_saved_query("monthly-malaria-cases", max_rows = 10000)
+```
+
+### The workspace database
+
+For full SQL access, connect with DBI (requires the DBI and RPostgres packages, and the permission to see the database
+credentials). It works with dplyr (and dbplyr) too:
+
+```{r}
+con <- connect_database()
+DBI::dbListTables(con)
+dplyr::tbl(con, "cases") |>
+  dplyr::filter(year == 2024) |>
+  dplyr::collect()
+DBI::dbDisconnect(con)
+```
+
+## Share results
+
+### Files and datasets
+
+```{r}
+write.csv(monthly, "monthly.csv", row.names = FALSE)
+upload_file("monthly.csv", "outputs/monthly.csv")
+
+create_dataset_version("routine-data", "2024-Q4", changelog = "Q4 extraction")
+add_dataset_file("routine-data", "monthly.csv")
+```
+
+### Web apps
+
+`publish_webapp()` publishes HTML as a web app of the workspace, and returns its URL. It accepts a string of HTML, an
+HTML file, a folder with an `index.html`, or any htmlwidget: plotly charts, leaflet maps, DT tables, etc.
+
+```{r}
+publish_webapp("Hello", "<h1>Hello from R</h1>")
+
+# install.packages("plotly")
+chart <- plotly::plot_ly(monthly, x = ~month, y = ~cases, color = ~district, type = "bar")
+app <- publish_webapp("Malaria cases", chart, description = "Monthly cases by district")
+app$url
+```
+
+Publishing again under the same name replaces the content of the web app, so the URL stays the same:
+
+```{r}
+publish_webapp("Malaria cases", "dashboard/", message = "Add Q4 data")
+```
+
+### Notebooks
+
+`create_notebook()` creates an R notebook in the workspace, ready to be opened from the Notebooks page. Cells are code
+cells, unless named `markdown`:
+
+```{r}
+create_notebook("analysis/malaria.ipynb", c(
+  markdown = "# Monthly malaria cases",
+  "library(openhexa)",
+  "monthly <- run_saved_query('monthly-malaria-cases')",
+  "summary(monthly)"
+))
+```
+
+## Pipelines and connections
+
+Look at the parameters of a pipeline, run it and wait for the result:
+
+```{r}
+get_pipeline("dhis2-extract")
+
+run <- run_pipeline(
+  "dhis2-extract",
+  config = list(start_date = "2024-01-01", org_units = I("BF")),
+  wait = TRUE
+)
+run$status
+run$messages
+
+list_pipeline_runs("dhis2-extract")
+```
+
+Connections hold the credentials of external systems, configured once at the workspace level. Secret values are
+hidden when printed:
+
+```{r}
+dhis2 <- get_dhis2_connection("dhis2-burkina")
+dhis2$url
+```
+
+## Going further
+
+- `graphql_query()` runs any query against the OpenHEXA [GraphQL API](https://api.openhexa.org/graphql/), for what
+  the package does not cover.
+- Errors have classes (`openhexa_not_found_error`, `openhexa_permission_error`, ...), so they can be handled with
+  `tryCatch()`.
+- To work with several servers in the same session, build clients with `openhexa_client()` and pass them as
+  `client`.

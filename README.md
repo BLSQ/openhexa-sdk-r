@@ -33,24 +33,20 @@ run_pipeline("dhis2-extract", config = list(start_date = "2024-01-01"), wait = T
 
 ## Installation
 
-The package is preinstalled in OpenHEXA notebooks. Elsewhere, install the latest release from GitHub or conda:
+The package is preinstalled in OpenHEXA notebooks. Elsewhere, install the latest release from GitHub:
 
 ```r
 # install.packages("remotes")
 remotes::install_github("BLSQ/openhexa-sdk-r")
-
-# or, with conda: conda install -c blsqtech r-openhexa
 ```
 
 ### Installing a specific version
 
-Releases are tagged on GitHub (`v0.1.0`, `v0.2.0`, ...) and published with the same version on conda. R keeps a single
-version of a package per library, so the version is chosen when installing:
+Releases are tagged on GitHub (`v0.1.0`, `v0.2.0`, ...). R keeps a single version of a package per library, so the
+version is chosen when installing:
 
 ```r
 remotes::install_github("BLSQ/openhexa-sdk-r@v0.2.0")
-
-# or, with conda: conda install -c blsqtech r-openhexa=0.2.0
 ```
 
 To pin the version for a project, use [renv](https://rstudio.github.io/renv/): it records the version in a lockfile

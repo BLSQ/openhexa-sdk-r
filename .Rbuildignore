@@ -1,0 +1,15 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.idea$
+^\.github$
+^tools$
+^LICENSE\.md$
+^README\.md$
+^CLAUDE\.md$
+^\.claude$
+^Makefile$
+^renovate\.json$
+^release-please-config\.json$
+^\.release-please-manifest\.json$
+^instructions$
+^\.graphqlrc\.yml$
