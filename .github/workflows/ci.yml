@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        r-version: ["4.1", "oldrel-1", "release"]
+        r-version: ["4.2", "oldrel-1", "release"]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
