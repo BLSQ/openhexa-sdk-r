@@ -5,7 +5,7 @@
 #
 #   OPENHEXA_DEMO_TOKEN=... OPENHEXA_DEMO_WORKSPACE=my-workspace make smoke
 #
-# The token is a demo API token, generated from your user settings on the demo server. Without it, an interactive
+# The token is a demo API token, from your account settings on the demo server. Without it, an interactive
 # session prompts for it. Without a workspace, the first one you have access to is used. Options:
 #   OPENHEXA_SMOKE_WRITE=true      also upload a file, create a dataset and a version, publish (then delete) a web app
 #                                  and create a notebook, all prefixed with "smoke-test-". Datasets and files can't be

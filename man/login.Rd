@@ -7,8 +7,8 @@
 login(token = NULL, server_url = NULL, workspace = NULL, verify = TRUE)
 }
 \arguments{
-\item{token}{An OpenHEXA API token. You can generate one from your user settings, or from the "Pipelines"
-page of a workspace.}
+\item{token}{An OpenHEXA API token. Your tokens, one per workspace, are listed under "Access tokens" in your
+account settings.}
 
 \item{server_url}{The URL of the OpenHEXA API, such as \code{"https://api.openhexa.org"}.}
 

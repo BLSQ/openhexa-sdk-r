@@ -63,7 +63,7 @@ The package is installed in the R image of OpenHEXA notebooks, and the connectio
 this step. The same goes for notebook pipelines written in R, where the access is limited to the workspace of the
 pipeline, for the duration of the run.
 
-Elsewhere, generate an API token from your OpenHEXA user settings, then log in. In an interactive session, you are
+Elsewhere, copy your API token from your OpenHEXA account settings, then log in. In an interactive session, you are
 prompted for the token, so that it doesn't end up in your scripts:
 
 ```{r}

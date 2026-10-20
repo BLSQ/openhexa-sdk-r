@@ -69,7 +69,7 @@ Versions follow [semantic versioning](https://semver.org). Before 1.0.0, breakin
 ## Authenticate and explore
 
 In OpenHEXA notebooks and R notebook pipelines, the package is installed and configured: just call
-`library(openhexa)`. Elsewhere, generate an API token from your user settings and log in:
+`library(openhexa)`. Elsewhere, copy your API token from your account settings and log in:
 
 ```r
 library(openhexa)
@@ -171,7 +171,7 @@ make smoke     # run every tier against the demo server, see tools/smoke_test.R
 
 4. Load the package from source with `pkgload::load_all()` (**Cmd/Ctrl + Shift + L**). Load it again after every
    change; `library(openhexa)` would load the installed version instead.
-5. Try it against the demo server. Generate an API token from your user settings on
+5. Try it against the demo server. Copy your API token from your account settings on
    [app.demo.openhexa.org](https://app.demo.openhexa.org), then:
 
    ```r
