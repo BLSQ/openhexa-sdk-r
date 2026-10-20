@@ -13,7 +13,7 @@ choose from a list: in RStudio, with the shiny package installed, in a dialog; e
 \item{client}{An \code{\link[=openhexa_client]{openhexa_client()}}. Defaults to the client configured with \code{\link[=login]{login()}} or environment variables.}
 }
 \value{
-The workspace, as an \code{openhexa_workspace} object, invisibly.
+The workspace, as an \code{openhexa_workspace} object, invisibly, or \code{NULL} if you cancel the dialog.
 }
 \description{
 Selects the workspace that every function uses when its \code{workspace} argument is not given, after checking that

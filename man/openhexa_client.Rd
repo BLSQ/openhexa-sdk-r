@@ -7,8 +7,7 @@
 openhexa_client(server_url = NULL, token = NULL)
 }
 \arguments{
-\item{server_url}{The URL of the OpenHEXA server: the API URL (\code{"https://api.openhexa.org"}) or the URL of the web
-app (\code{"https://app.openhexa.org"}).}
+\item{server_url}{The URL of the OpenHEXA API, such as \code{"https://api.openhexa.org"}.}
 
 \item{token}{An OpenHEXA API token. You can generate one from your user settings, or from the "Pipelines"
 page of a workspace.}

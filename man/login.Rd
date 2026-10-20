@@ -10,15 +10,14 @@ login(token = NULL, server_url = NULL, workspace = NULL, verify = TRUE)
 \item{token}{An OpenHEXA API token. You can generate one from your user settings, or from the "Pipelines"
 page of a workspace.}
 
-\item{server_url}{The URL of the OpenHEXA server: the API URL (\code{"https://api.openhexa.org"}) or the URL of the web
-app (\code{"https://app.openhexa.org"}).}
+\item{server_url}{The URL of the OpenHEXA API, such as \code{"https://api.openhexa.org"}.}
 
 \item{workspace}{The slug of the workspace to use by default.}
 
 \item{verify}{If \code{TRUE} (the default), check the credentials by fetching the current user.}
 }
 \value{
-The client, invisibly.
+The client, invisibly, or \code{NULL} if you cancel the login dialog.
 }
 \description{
 Stores the server URL, API token and (optionally) a default workspace for the rest of the R session. Every
@@ -33,7 +32,7 @@ RStudio, with the shiny package installed, this opens a login dialog; elsewhere,
 \examples{
 \dontrun{
 login() # asks you to pick the server, then prompts for the token
-login(server_url = "https://app.openhexa.org", workspace = "my-workspace") # prompts for the token
+login(server_url = "https://api.openhexa.org", workspace = "my-workspace") # prompts for the token
 login(token = "...", server_url = "https://api.openhexa.org", workspace = "my-workspace")
 }
 }
