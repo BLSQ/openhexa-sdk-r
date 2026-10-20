@@ -1,0 +1,11 @@
+query ExecuteSavedQuery($input: ExecuteSavedQueryInput!) {
+  executeSavedQuery(input: $input) {
+    success
+    errors
+    errorMessage
+    columns
+    rows
+    rowCount
+    truncated
+  }
+}

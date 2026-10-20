@@ -1,0 +1,15 @@
+query DatasetVersionFiles($versionId: ID!, $page: Int, $perPage: Int) {
+  datasetVersion(id: $versionId) {
+    files(page: $page, perPage: $perPage) {
+      totalPages
+      items {
+        id
+        filename
+        uri
+        contentType
+        size
+        createdAt
+      }
+    }
+  }
+}

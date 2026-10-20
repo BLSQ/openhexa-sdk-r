@@ -1,0 +1,19 @@
+query Webapp($workspaceSlug: String!, $slug: String!) {
+  webapp(workspaceSlug: $workspaceSlug, slug: $slug) {
+    id
+    slug
+    name
+    description
+    url
+    type
+    isPublic
+    allowedOperations
+    workspace {
+      slug
+    }
+    files(includeBinaryContent: false) {
+      path
+      type
+    }
+  }
+}

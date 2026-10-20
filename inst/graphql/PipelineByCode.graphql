@@ -1,0 +1,29 @@
+query PipelineByCode($code: String!, $workspaceSlug: String!) {
+  pipelineByCode(code: $code, workspaceSlug: $workspaceSlug) {
+    id
+    code
+    name
+    description
+    type
+    schedule
+    webhookEnabled
+    createdAt
+    updatedAt
+    currentVersion {
+      id
+      versionNumber
+      versionName
+      createdAt
+      parameters {
+        code
+        name
+        type
+        required
+        multiple
+        default
+        choices
+        help
+      }
+    }
+  }
+}

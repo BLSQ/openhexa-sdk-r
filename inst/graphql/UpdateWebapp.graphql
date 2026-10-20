@@ -1,0 +1,9 @@
+mutation UpdateWebapp($input: UpdateWebappInput!) {
+  updateWebapp(input: $input) {
+    success
+    errors
+    webapp {
+      slug
+    }
+  }
+}

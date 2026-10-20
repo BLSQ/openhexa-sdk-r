@@ -1,0 +1,13 @@
+query ConnectionBySlug($workspaceSlug: String!, $connectionSlug: String!) {
+  connectionBySlug(workspaceSlug: $workspaceSlug, connectionSlug: $connectionSlug) {
+    id
+    slug
+    name
+    type
+    fields {
+      code
+      value
+      secret
+    }
+  }
+}

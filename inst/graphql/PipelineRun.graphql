@@ -1,0 +1,27 @@
+query PipelineRun($id: UUID!, $withLogs: Boolean = false) {
+  pipelineRun(id: $id) {
+    id
+    status
+    executionDate
+    duration
+    progress
+    config
+    triggerMode
+    logs @include(if: $withLogs)
+    pipeline {
+      code
+    }
+    version {
+      versionNumber
+      versionName
+    }
+    user {
+      displayName
+    }
+    messages {
+      message
+      priority
+      timestamp
+    }
+  }
+}

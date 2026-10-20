@@ -1,0 +1,16 @@
+query DatasetVersions($datasetId: ID!, $page: Int, $perPage: Int) {
+  dataset(id: $datasetId) {
+    versions(page: $page, perPage: $perPage) {
+      totalPages
+      items {
+        id
+        name
+        changelog
+        createdAt
+        createdBy {
+          displayName
+        }
+      }
+    }
+  }
+}

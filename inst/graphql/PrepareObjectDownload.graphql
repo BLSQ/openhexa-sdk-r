@@ -1,0 +1,7 @@
+mutation PrepareObjectDownload($input: PrepareObjectDownloadInput!) {
+  prepareObjectDownload(input: $input) {
+    success
+    errors
+    downloadUrl
+  }
+}

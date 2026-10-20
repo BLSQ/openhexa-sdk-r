@@ -1,0 +1,6 @@
+mutation StopPipeline($input: StopPipelineInput!) {
+  stopPipeline(input: $input) {
+    success
+    errors
+  }
+}

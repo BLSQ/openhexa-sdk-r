@@ -1,0 +1,19 @@
+query SavedQueries($workspaceSlug: String!, $query: String, $page: Int, $perPage: Int) {
+  workspace(slug: $workspaceSlug) {
+    savedQueries(query: $query, page: $page, perPage: $perPage) {
+      totalPages
+      items {
+        id
+        slug
+        name
+        description
+        visibility
+        createdAt
+        updatedAt
+        createdBy {
+          displayName
+        }
+      }
+    }
+  }
+}

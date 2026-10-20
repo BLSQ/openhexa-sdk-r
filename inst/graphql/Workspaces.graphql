@@ -1,0 +1,12 @@
+query Workspaces($query: String, $page: Int, $perPage: Int) {
+  workspaces(query: $query, page: $page, perPage: $perPage) {
+    totalPages
+    items {
+      slug
+      name
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}

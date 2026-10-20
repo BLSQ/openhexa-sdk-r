@@ -1,0 +1,12 @@
+mutation CreateDatasetVersion($input: CreateDatasetVersionInput!) {
+  createDatasetVersion(input: $input) {
+    success
+    errors
+    version {
+      id
+      name
+      changelog
+      createdAt
+    }
+  }
+}

@@ -1,0 +1,9 @@
+mutation CreateWebapp($input: CreateWebappInput!) {
+  createWebapp(input: $input) {
+    success
+    errors
+    webapp {
+      slug
+    }
+  }
+}

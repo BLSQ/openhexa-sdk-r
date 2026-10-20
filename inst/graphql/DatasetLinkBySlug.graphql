@@ -1,0 +1,22 @@
+query DatasetLinkBySlug($datasetSlug: String!, $workspaceSlug: String!) {
+  datasetLinkBySlug(datasetSlug: $datasetSlug, workspaceSlug: $workspaceSlug) {
+    id
+    dataset {
+      id
+      slug
+      name
+      description
+      createdAt
+      updatedAt
+      workspace {
+        slug
+      }
+      latestVersion {
+        id
+        name
+        changelog
+        createdAt
+      }
+    }
+  }
+}

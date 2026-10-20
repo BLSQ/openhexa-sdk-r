@@ -1,0 +1,30 @@
+query BucketObjects(
+  $workspaceSlug: String!
+  $prefix: String
+  $query: String
+  $ignoreHiddenFiles: Boolean
+  $page: Int
+  $perPage: Int
+) {
+  workspace(slug: $workspaceSlug) {
+    bucket {
+      objects(
+        prefix: $prefix
+        query: $query
+        ignoreHiddenFiles: $ignoreHiddenFiles
+        page: $page
+        perPage: $perPage
+      ) {
+        hasNextPage
+        items {
+          key
+          name
+          path
+          type
+          size
+          updatedAt
+        }
+      }
+    }
+  }
+}

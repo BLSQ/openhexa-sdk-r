@@ -1,0 +1,15 @@
+query Workspace($slug: String!) {
+  workspace(slug: $slug) {
+    slug
+    name
+    description
+    configuration
+    createdAt
+    updatedAt
+    countries {
+      code
+      alpha3
+      name
+    }
+  }
+}

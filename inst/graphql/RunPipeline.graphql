@@ -1,0 +1,9 @@
+mutation RunPipeline($input: RunPipelineInput!) {
+  runPipeline(input: $input) {
+    success
+    errors
+    run {
+      id
+    }
+  }
+}

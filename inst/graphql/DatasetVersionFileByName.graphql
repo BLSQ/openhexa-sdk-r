@@ -1,0 +1,12 @@
+query DatasetVersionFileByName($versionId: ID!, $filename: String!) {
+  datasetVersion(id: $versionId) {
+    fileByName(name: $filename) {
+      id
+      filename
+      uri
+      contentType
+      size
+      createdAt
+    }
+  }
+}

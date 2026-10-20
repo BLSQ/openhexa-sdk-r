@@ -1,0 +1,14 @@
+query Webapps($workspaceSlug: String, $page: Int, $perPage: Int) {
+  webapps(workspaceSlug: $workspaceSlug, page: $page, perPage: $perPage) {
+    totalPages
+    items {
+      id
+      slug
+      name
+      description
+      url
+      type
+      isPublic
+    }
+  }
+}

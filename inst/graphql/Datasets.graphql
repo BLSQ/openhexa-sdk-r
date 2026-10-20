@@ -1,0 +1,27 @@
+query Datasets($workspaceSlug: String!, $query: String, $page: Int, $perPage: Int) {
+  workspace(slug: $workspaceSlug) {
+    datasets(query: $query, page: $page, perPage: $perPage) {
+      totalPages
+      items {
+        id
+        isPinned
+        dataset {
+          id
+          slug
+          name
+          description
+          createdAt
+          updatedAt
+          workspace {
+            slug
+          }
+          latestVersion {
+            id
+            name
+            createdAt
+          }
+        }
+      }
+    }
+  }
+}

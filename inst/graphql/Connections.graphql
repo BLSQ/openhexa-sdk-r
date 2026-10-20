@@ -1,0 +1,17 @@
+query Connections($slug: String!) {
+  workspace(slug: $slug) {
+    connections {
+      id
+      slug
+      name
+      description
+      type
+      createdAt
+      updatedAt
+      fields {
+        code
+        secret
+      }
+    }
+  }
+}

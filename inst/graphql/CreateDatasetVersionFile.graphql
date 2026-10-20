@@ -1,0 +1,14 @@
+mutation CreateDatasetVersionFile($input: CreateDatasetVersionFileInput!) {
+  createDatasetVersionFile(input: $input) {
+    success
+    errors
+    file {
+      id
+      filename
+      uri
+      contentType
+      size
+      createdAt
+    }
+  }
+}

@@ -1,0 +1,8 @@
+mutation GenerateDatasetUploadUrl($input: GenerateDatasetUploadUrlInput!) {
+  generateDatasetUploadUrl(input: $input) {
+    success
+    errors
+    uploadUrl
+    headers
+  }
+}

@@ -1,0 +1,21 @@
+query PipelineRuns($code: String!, $workspaceSlug: String!, $page: Int, $perPage: Int) {
+  pipelineByCode(code: $code, workspaceSlug: $workspaceSlug) {
+    runs(orderBy: EXECUTION_DATE_DESC, page: $page, perPage: $perPage) {
+      totalPages
+      items {
+        id
+        status
+        executionDate
+        duration
+        triggerMode
+        user {
+          displayName
+        }
+        version {
+          versionNumber
+          versionName
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+mutation CreateDataset($input: CreateDatasetInput!) {
+  createDataset(input: $input) {
+    success
+    errors
+    dataset {
+      slug
+    }
+  }
+}
