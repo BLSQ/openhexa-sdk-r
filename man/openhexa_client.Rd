@@ -13,11 +13,53 @@ openhexa_client(server_url = NULL, token = NULL)
 account settings.}
 }
 \value{
-An \code{openhexa_client} object.
+An \code{openhexa_client} object: a list with \code{server_url} (normalized: \verb{https://} added when missing,
+trailing \code{/} and \verb{/graphql} removed) and \code{token}.
 }
 \description{
 A client bundles a server URL and an API token. Every function of the package accepts a \code{client} argument;
 when it is \code{NULL}, the client is built from the values set with \code{\link[=login]{login()}} or from the \code{HEXA_SERVER_URL}
 and \code{HEXA_TOKEN} environment variables. You only need to build clients explicitly to talk to several
-servers in the same session.
+servers, or with several tokens, in the same session.
+}
+\details{
+To use a client, pass it as the \code{client} argument of any function of the package, such as \code{\link[=list_workspaces]{list_workspaces()}},
+\code{\link[=list_datasets]{list_datasets()}}, \code{\link[=get_dataset_data]{get_dataset_data()}}, \code{\link[=run_pipeline]{run_pipeline()}} or \code{\link[=graphql_query]{graphql_query()}}.
+
+A few things to keep in mind:
+\itemize{
+\item A client does not carry a workspace. The default workspace is the one set with \code{\link[=login]{login()}} or \code{\link[=set_workspace]{set_workspace()}}
+(or \code{HEXA_WORKSPACE}), whatever the client: with a client for another server, pass \code{workspace} explicitly.
+\item The values are read when the client is created. Calling \code{\link[=login]{login()}} or \code{\link[=logout]{logout()}} afterwards doesn't change
+existing clients.
+\item Creating a client doesn't contact the server: check the token with \code{\link[=get_user]{get_user()}}.
+\item Printing a client hides the token, except for its last four characters.
+}
+}
+\examples{
+\dontrun{
+# The client used by default, from login() or the environment variables
+client <- openhexa_client()
+client
+#> <openhexa_client> https://api.openhexa.org (token: ****a1b2)
+
+# A client for another server, with its own token, kept out of the script
+demo <- openhexa_client("https://api.demo.openhexa.org", Sys.getenv("OPENHEXA_DEMO_TOKEN"))
+get_user(client = demo) # check the token
+
+# Pass it to any function. The workspace is not part of the client: name it.
+list_workspaces(client = demo)
+list_datasets(workspace = "my-demo-workspace", client = demo)
+data <- get_dataset_data("population", workspace = "my-demo-workspace", client = demo)
+run_pipeline("my-pipeline", config = list(year = 2024), workspace = "my-demo-workspace", client = demo)
+graphql_query("query { me { user { email } } }", client = demo)
+
+# Copy a file from one server to another
+prod <- openhexa_client("https://api.openhexa.org", Sys.getenv("OPENHEXA_TOKEN"))
+path <- download_file("data/report.csv", tempfile(fileext = ".csv"), workspace = "my-workspace", client = prod)
+upload_file(path, "data/report.csv", workspace = "my-demo-workspace", client = demo)
+}
+}
+\seealso{
+\code{\link[=login]{login()}} to set the default client for the session.
 }

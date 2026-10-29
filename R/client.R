@@ -123,11 +123,48 @@ logout <- function() {
 #' A client bundles a server URL and an API token. Every function of the package accepts a `client` argument;
 #' when it is `NULL`, the client is built from the values set with [login()] or from the `HEXA_SERVER_URL`
 #' and `HEXA_TOKEN` environment variables. You only need to build clients explicitly to talk to several
-#' servers in the same session.
+#' servers, or with several tokens, in the same session.
+#'
+#' To use a client, pass it as the `client` argument of any function of the package, such as [list_workspaces()],
+#' [list_datasets()], [get_dataset_data()], [run_pipeline()] or [graphql_query()].
+#'
+#' A few things to keep in mind:
+#'
+#' * A client does not carry a workspace. The default workspace is the one set with [login()] or [set_workspace()]
+#'   (or `HEXA_WORKSPACE`), whatever the client: with a client for another server, pass `workspace` explicitly.
+#' * The values are read when the client is created. Calling [login()] or [logout()] afterwards doesn't change
+#'   existing clients.
+#' * Creating a client doesn't contact the server: check the token with [get_user()].
+#' * Printing a client hides the token, except for its last four characters.
 #'
 #' @inheritParams login
-#' @return An `openhexa_client` object.
+#' @return An `openhexa_client` object: a list with `server_url` (normalized: `https://` added when missing,
+#'   trailing `/` and `/graphql` removed) and `token`.
+#' @seealso [login()] to set the default client for the session.
 #' @export
+#' @examples
+#' \dontrun{
+#' # The client used by default, from login() or the environment variables
+#' client <- openhexa_client()
+#' client
+#' #> <openhexa_client> https://api.openhexa.org (token: ****a1b2)
+#'
+#' # A client for another server, with its own token, kept out of the script
+#' demo <- openhexa_client("https://api.demo.openhexa.org", Sys.getenv("OPENHEXA_DEMO_TOKEN"))
+#' get_user(client = demo) # check the token
+#'
+#' # Pass it to any function. The workspace is not part of the client: name it.
+#' list_workspaces(client = demo)
+#' list_datasets(workspace = "my-demo-workspace", client = demo)
+#' data <- get_dataset_data("population", workspace = "my-demo-workspace", client = demo)
+#' run_pipeline("my-pipeline", config = list(year = 2024), workspace = "my-demo-workspace", client = demo)
+#' graphql_query("query { me { user { email } } }", client = demo)
+#'
+#' # Copy a file from one server to another
+#' prod <- openhexa_client("https://api.openhexa.org", Sys.getenv("OPENHEXA_TOKEN"))
+#' path <- download_file("data/report.csv", tempfile(fileext = ".csv"), workspace = "my-workspace", client = prod)
+#' upload_file(path, "data/report.csv", workspace = "my-demo-workspace", client = demo)
+#' }
 openhexa_client <- function(server_url = NULL, token = NULL) {
   server_url <- server_url %||% .openhexa$server_url %||% env_or_null("HEXA_SERVER_URL")
   token <- token %||% .openhexa$token %||% env_or_null("HEXA_TOKEN")
