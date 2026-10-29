@@ -1,3 +1,10 @@
+## [0.1.1](https://github.com/BLSQ/openhexa-sdk-r/compare/v0.1.0...v0.1.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* missing current_run + relogin + client documentation ([#2](https://github.com/BLSQ/openhexa-sdk-r/issues/2)) ([dd8bd21](https://github.com/BLSQ/openhexa-sdk-r/commit/dd8bd216d50178e2578b8e6aa3b7463bd006bfa3))
+
 ## 0.1.0 (2026-10-20)
 
 
