@@ -4,7 +4,7 @@
 \alias{current_run}
 \title{The current pipeline run}
 \format{
-A list of functions.
+An object of class \code{openhexa_run}.
 }
 \usage{
 current_run
@@ -22,7 +22,7 @@ develop it.
 \code{current_run$log_error(...)} and \code{current_run$log_critical(...)} send a message with that level. The arguments
 are pasted together, as with \code{\link[=message]{message()}}. Messages below the log level chosen when starting the run (\code{INFO} by
 default) are ignored.
-\item \code{current_run$id()} returns the ID of the run, or \code{NULL} outside a pipeline.
+\item \code{current_run$id} is the ID of the run, or \code{NULL} outside a pipeline.
 }
 
 A pipeline run is detected from the environment variables that OpenHEXA sets for it (\code{HEXA_ENVIRONMENT},
@@ -30,6 +30,8 @@ A pipeline run is detected from the environment variables that OpenHEXA sets for
 \code{\link[=login]{login()}}. A message that cannot be sent raises a warning, not an error, so that logging never stops a pipeline.
 }
 \examples{
+current_run
+current_run$id
 current_run$log_info("Starting the extraction")
 current_run$log_warning("No data for ", 3, " districts")
 

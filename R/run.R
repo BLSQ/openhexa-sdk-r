@@ -10,15 +10,17 @@
 #'   `current_run$log_error(...)` and `current_run$log_critical(...)` send a message with that level. The arguments
 #'   are pasted together, as with [message()]. Messages below the log level chosen when starting the run (`INFO` by
 #'   default) are ignored.
-#' * `current_run$id()` returns the ID of the run, or `NULL` outside a pipeline.
+#' * `current_run$id` is the ID of the run, or `NULL` outside a pipeline.
 #'
 #' A pipeline run is detected from the environment variables that OpenHEXA sets for it (`HEXA_ENVIRONMENT`,
 #' `HEXA_SERVER_URL`, `HEXA_TOKEN`): messages are sent with the token of the run, not with the credentials set with
 #' [login()]. A message that cannot be sent raises a warning, not an error, so that logging never stops a pipeline.
 #'
-#' @format A list of functions.
+#' @format An object of class `openhexa_run`.
 #' @export
 #' @examples
+#' current_run
+#' current_run$id
 #' current_run$log_info("Starting the extraction")
 #' current_run$log_warning("No data for ", 3, " districts")
 #'
@@ -27,20 +29,34 @@
 #' current_run$log_info("Read ", nrow(cases), " rows")
 #' if (anyNA(cases$value)) current_run$log_error("Missing values in the cases")
 #' }
-current_run <- local({
+current_run <- structure(new.env(parent = emptyenv()), class = "openhexa_run")
+
+# Called from .onLoad(): the ID is an active binding, read from the environment each time it is accessed. A plain
+# value would be frozen when the package is installed.
+init_current_run <- function(run = current_run) {
   logger <- function(level) {
     force(level)
     function(...) log_run_message(level, paste0(...))
   }
-  list(
-    id = function() if (in_pipeline_run()) env_or_null("HEXA_RUN_ID"),
-    log_debug = logger("DEBUG"),
-    log_info = logger("INFO"),
-    log_warning = logger("WARNING"),
-    log_error = logger("ERROR"),
-    log_critical = logger("CRITICAL")
-  )
-})
+  makeActiveBinding("id", function() if (in_pipeline_run()) env_or_null("HEXA_RUN_ID") else NULL, run)
+  run$log_debug <- logger("DEBUG")
+  run$log_info <- logger("INFO")
+  run$log_warning <- logger("WARNING")
+  run$log_error <- logger("ERROR")
+  run$log_critical <- logger("CRITICAL")
+  lockEnvironment(run, bindings = TRUE)
+}
+
+#' @export
+print.openhexa_run <- function(x, ...) {
+  id <- x$id
+  if (is.null(id)) {
+    cli::cli_text("Not in a pipeline run: messages are printed in the console.")
+  } else {
+    cli::cli_text("Pipeline run {.val {id}}")
+  }
+  invisible(x)
+}
 
 log_levels <- c("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 

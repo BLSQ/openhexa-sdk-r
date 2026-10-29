@@ -17,7 +17,8 @@ test_that("messages are sent to the pipeline run with the token of the run", {
   current_run$log_critical("Stop")
   expect_equal(sent$calls[[1]]$variables$input, list(priority = "INFO", message = "Read 12 rows"))
   expect_equal(sent$calls[[2]]$variables$input$priority, "CRITICAL")
-  expect_equal(current_run$id(), "run-1")
+  expect_equal(current_run$id, "run-1")
+  expect_match(cli::cli_fmt(print(current_run)), "run-1")
 })
 
 test_that("messages below the log level of the run are ignored", {
@@ -57,5 +58,6 @@ test_that("outside a pipeline, messages are printed in the console", {
   expect_message(current_run$log_warning("No data for ", 3, " districts"), "WARNING No data for 3 districts")
   expect_silent(current_run$log_debug("hidden"))
   expect_length(sent$calls, 0)
-  expect_null(current_run$id())
+  expect_null(current_run$id)
+  expect_match(cli::cli_fmt(print(current_run)), "Not in a pipeline run")
 })

@@ -125,3 +125,7 @@ NULL
 
 # Package-level state: credentials set by login() and the cache of loaded GraphQL operations.
 .openhexa <- new.env(parent = emptyenv())
+
+.onLoad <- function(libname, pkgname) {
+  init_current_run()
+}
