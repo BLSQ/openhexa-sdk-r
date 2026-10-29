@@ -6,18 +6,20 @@ use_login_gadget <- function() {
   rlang::is_installed("shiny") && rlang::is_installed("rstudioapi") && rstudioapi::isAvailable()
 }
 
-# Asks for what is not known yet: the server and token, then the workspace if `ask_workspace` is TRUE. Returns a list
-# with `server_url`, `token` and `workspace`, each NULL when it was not asked for, or NULL when the user cancels.
-login_gadget <- function(server_url = NULL, token = NULL, ask_workspace = TRUE) {
+# Asks for what is not known yet: the server and token, then the workspace if `ask_workspace` is TRUE. With `edit`, asks
+# for the server and token even when they are known, filled in with the current values. Returns a list with
+# `server_url`, `token` and `workspace`, each NULL when it was not asked for, or NULL when the user cancels.
+login_gadget <- function(server_url = NULL, token = NULL, ask_workspace = TRUE, edit = FALSE) {
   server_url <- server_url %||% .openhexa$server_url %||% env_or_null("HEXA_SERVER_URL")
   token <- token %||% .openhexa$token %||% env_or_null("HEXA_TOKEN")
-  need_server <- is.null(server_url)
-  need_token <- is.null(token)
+  workspace <- .openhexa$workspace %||% env_or_null("HEXA_WORKSPACE")
+  need_server <- edit || is.null(server_url)
+  need_token <- edit || is.null(token)
   result <- tryCatch(
     # Hide the messages of shiny ("Listening on http://127.0.0.1:..."): login() reports the result.
     suppressMessages(shiny::runGadget(
-      login_gadget_ui(need_server, need_token),
-      login_gadget_server(server_url, token, ask_workspace),
+      login_gadget_ui(need_server, need_token, server_url, token),
+      login_gadget_server(server_url, token, ask_workspace, edit = edit, workspace = workspace),
       viewer = shiny::dialogViewer("OpenHEXA", width = 460, height = 480),
       stopOnCancel = FALSE
     )),
@@ -31,7 +33,7 @@ login_gadget <- function(server_url = NULL, token = NULL, ask_workspace = TRUE) 
   result
 }
 
-login_gadget_ui <- function(need_server, need_token) {
+login_gadget_ui <- function(need_server, need_token, server_url = NULL, token = NULL) {
   done <- shiny::actionButton("done", if (need_server || need_token) "Log in" else "Continue", class = "btn-primary")
   # Without credentials to enter, the dialog opens on the workspaces, which are loading.
   if (!need_server && !need_token) done <- shiny::tagAppendAttributes(done, disabled = "disabled")
@@ -40,17 +42,23 @@ login_gadget_ui <- function(need_server, need_token) {
     shiny::tags$script(shiny::HTML(login_gadget_js)),
     shiny::tags$h3(if (need_server || need_token) "Log in to OpenHEXA" else "Choose a workspace"),
     if (need_server) {
+      known <- !is.null(server_url) && normalize_server_url(server_url) %in% known_servers
+      custom_url <- if (!is.null(server_url) && !known) server_url else ""
+      selected <- if (known) normalize_server_url(server_url) else if (nzchar(custom_url)) "other"
       shiny::tagList(
-        shiny::selectInput("server", "Server", choices = c(known_servers, "Custom API URL" = "other"), width = "100%"),
+        shiny::selectInput(
+          "server", "Server",
+          choices = c(known_servers, "Custom API URL" = "other"), selected = selected, width = "100%"
+        ),
         shiny::conditionalPanel(
           "input.server == 'other'",
-          shiny::textInput("url", "API URL", placeholder = "https://api.my-openhexa.org", width = "100%")
+          shiny::textInput("url", "API URL", value = custom_url, placeholder = "https://api.my-openhexa.org", width = "100%")
         )
       )
     },
     if (need_token) {
       shiny::tagList(
-        shiny::passwordInput("token", "API token", width = "100%"),
+        shiny::passwordInput("token", "API token", value = token %||% "", width = "100%"),
         shiny::uiOutput("token_help")
       )
     },
@@ -91,9 +99,9 @@ Shiny.addCustomMessageHandler('openhexa-ready', function(label) {
 });
 "
 
-login_gadget_server <- function(server_url = NULL, token = NULL, ask_workspace = TRUE) {
-  need_server <- is.null(server_url)
-  need_token <- is.null(token)
+login_gadget_server <- function(server_url = NULL, token = NULL, ask_workspace = TRUE, edit = FALSE, workspace = NULL) {
+  need_server <- edit || is.null(server_url)
+  need_token <- edit || is.null(token)
   function(input, output, session) {
     error <- shiny::reactiveVal("")
     output$error <- shiny::renderText(error())
@@ -122,7 +130,8 @@ login_gadget_server <- function(server_url = NULL, token = NULL, ask_workspace =
       if (loading()) return(workspaces_loading())
       if (is.null(state$workspaces)) return(NULL)
       choices <- stats::setNames(state$workspaces$slug, workspace_labels(state$workspaces))
-      shiny::selectInput("workspace", "Workspace", choices = choices, width = "100%")
+      selected <- if (!is.null(workspace) && workspace %in% state$workspaces$slug) workspace
+      shiny::selectInput("workspace", "Workspace", choices = choices, selected = selected, width = "100%")
     })
 
     finish <- function(workspace = NULL) {

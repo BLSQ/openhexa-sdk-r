@@ -28,6 +28,8 @@ value that is not provided falls back to the corresponding environment variable 
 In an interactive session, you are asked for the server and the token when they are neither provided nor
 configured, so that the token doesn't end up in your scripts, and then to choose a workspace if none is set. In
 RStudio, with the shiny package installed, this opens a login dialog; elsewhere, you are prompted in the console.
+In RStudio, calling \code{login()} without arguments again reopens the dialog, filled in with the current server, token
+and workspace, so that you can change them.
 }
 \examples{
 \dontrun{

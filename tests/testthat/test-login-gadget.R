@@ -24,7 +24,7 @@ test_that("login() opens the login dialog in RStudio", {
   rlang::local_interactive()
   local_mocked_bindings(
     use_login_gadget = function() TRUE,
-    login_gadget = function(server_url, token, ask_workspace) {
+    login_gadget = function(server_url, token, ask_workspace, edit) {
       expect_false(ask_workspace)
       list(server_url = test_server_url, token = "dialog-token", workspace = NULL)
     }
@@ -40,7 +40,7 @@ test_that("login() reports the result of the dialog in the console", {
   rlang::local_interactive()
   local_mocked_bindings(
     use_login_gadget = function() TRUE,
-    login_gadget = function(server_url, token, ask_workspace) {
+    login_gadget = function(server_url, token, ask_workspace, edit) {
       list(server_url = test_server_url, token = "test-token", workspace = "other")
     }
   )
@@ -49,6 +49,50 @@ test_that("login() reports the result of the dialog in the console", {
   expect_match(messages[[1]], "Authenticated as Ada")
   expect_match(messages[[2]], 'Using workspace Other workspace ("other")', fixed = TRUE)
   expect_equal(resolve_workspace(), "other")
+})
+
+test_that("calling login() again reopens the dialog to change the credentials", {
+  provide_credentials()
+  rlang::local_interactive()
+  local_mocked_bindings(
+    use_login_gadget = function() TRUE,
+    login_gadget = function(server_url, token, ask_workspace, edit) {
+      expect_true(edit)
+      expect_true(ask_workspace)
+      list(server_url = test_server_url, token = "test-token", workspace = "other")
+    }
+  )
+  answer_login()
+  expect_message(login(), "Other workspace")
+  expect_equal(resolve_workspace(), "other")
+})
+
+test_that("login() with arguments doesn't reopen the dialog when nothing is missing", {
+  provide_credentials()
+  rlang::local_interactive()
+  local_mocked_bindings(use_login_gadget = function() TRUE, login_gadget = function(...) stop("Unexpected dialog"))
+  answer_login()
+  expect_message(login(workspace = "other"), "Other workspace")
+})
+
+test_that("the login dialog is filled in with the current values when they can be changed", {
+  skip_if_not_installed("shiny")
+  html <- as.character(login_gadget_ui(TRUE, TRUE, "https://api.demo.openhexa.org/", "my-token"))
+  expect_match(html, '<option value="https://api.demo.openhexa.org" selected>', fixed = TRUE)
+  expect_match(html, 'value="my-token"', fixed = TRUE)
+
+  html <- as.character(login_gadget_ui(TRUE, TRUE, "https://api.my-openhexa.example", NULL))
+  expect_match(html, '<option value="other" selected>', fixed = TRUE)
+  expect_match(html, 'value="https://api.my-openhexa.example"', fixed = TRUE)
+
+  result <- capture_dialog_result()
+  answer_login()
+  shiny::testServer(login_gadget_server(test_server_url, "test-token", edit = TRUE, workspace = "other"), {
+    session$setInputs(server = "other", url = test_server_url, token = "test-token", done = 1)
+    expect_match(output$workspace_ui$html, '<option value="other" selected>', fixed = TRUE)
+    session$setInputs(workspace = "other", done = 2)
+    expect_equal(result$value, list(server_url = test_server_url, token = "test-token", workspace = "other"))
+  })
 })
 
 test_that("cancelling the dialog leaves everything as it was, without an error", {
@@ -147,7 +191,7 @@ test_that("set_workspace() opens the dialog in RStudio", {
   rlang::local_interactive()
   local_mocked_bindings(
     use_login_gadget = function() TRUE,
-    login_gadget = function(server_url = NULL, token = NULL, ask_workspace) list(workspace = "test-workspace")
+    login_gadget = function(server_url = NULL, token = NULL, ask_workspace, edit = FALSE) list(workspace = "test-workspace")
   )
   server$answer(Workspace = list(workspace = test_workspace()))
   expect_message(set_workspace(), "Test workspace")

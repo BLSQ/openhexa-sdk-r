@@ -7,6 +7,8 @@
 #' In an interactive session, you are asked for the server and the token when they are neither provided nor
 #' configured, so that the token doesn't end up in your scripts, and then to choose a workspace if none is set. In
 #' RStudio, with the shiny package installed, this opens a login dialog; elsewhere, you are prompted in the console.
+#' In RStudio, calling `login()` without arguments again reopens the dialog, filled in with the current server, token
+#' and workspace, so that you can change them.
 #'
 #' @param token An OpenHEXA API token. Your tokens, one per workspace, are listed under "Access tokens" in your
 #'   account settings.
@@ -33,8 +35,9 @@ login <- function(token = NULL, server_url = NULL, workspace = NULL, verify = TR
   # Choosing a workspace needs the API, so only when the credentials are verified.
   need_workspace <- verify && is.null(workspace %||% .openhexa$workspace %||% env_or_null("HEXA_WORKSPACE"))
   gadget <- interactive && use_login_gadget()
-  if (gadget && (need_server || need_token || need_workspace)) {
-    answer <- login_gadget(server_url, token, ask_workspace = need_workspace)
+  relogin <- is.null(token) && is.null(server_url) && is.null(workspace)
+  if (gadget && (relogin || need_server || need_token || need_workspace)) {
+    answer <- login_gadget(server_url, token, ask_workspace = need_workspace || (relogin && verify), edit = relogin)
     # Cancelling is not an error: leave everything as it was.
     if (is.null(answer)) {
       cli::cli_alert_info("Login cancelled.")
