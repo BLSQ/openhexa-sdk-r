@@ -1,6 +1,6 @@
 Package: openhexa
 Title: R Client for the 'OpenHEXA' Data Platform
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Bluesquare", email = "dev@bluesquarehub.com", role = c("aut", "cre", "cph"))
 Description: Work with 'OpenHEXA' workspaces from R: read and publish datasets, read and write workspace files,
