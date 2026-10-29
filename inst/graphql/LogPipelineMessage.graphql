@@ -1,0 +1,6 @@
+mutation LogPipelineMessage($input: LogPipelineMessageInput!) {
+  logPipelineMessage(input: $input) {
+    success
+    errors
+  }
+}

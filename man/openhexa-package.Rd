@@ -143,6 +143,7 @@ dhis2 <- get_dhis2_connection("dhis2-play")
 \item \code{\link[=get_pipeline_run]{get_pipeline_run()}}: get a run, with its status, messages and logs.
 \item \code{\link[=wait_pipeline_run]{wait_pipeline_run()}}: wait for a run to finish.
 \item \code{\link[=stop_pipeline_run]{stop_pipeline_run()}}: stop a run.
+\item \link{current_run}: the pipeline run the code is running in: its ID, and messages to its run page.
 }
 }
 

@@ -141,6 +141,14 @@ run$messages
 dhis2 <- get_dhis2_connection("dhis2-play")
 ```
 
+Inside a pipeline, such as an R notebook pipeline, send messages to the run page with `current_run`, like
+`current_run.log_info()` in Python. Outside a pipeline, they are printed in the console.
+
+```r
+current_run$log_info("Read ", nrow(cases), " rows")
+current_run$log_warning("No data for 3 districts")
+```
+
 See `vignette("openhexa")` for a complete walkthrough. For anything else, `graphql_query()` runs any query against
 the OpenHEXA API.
 

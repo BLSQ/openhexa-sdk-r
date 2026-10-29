@@ -102,6 +102,7 @@
 #' * [get_pipeline_run()]: get a run, with its status, messages and logs.
 #' * [wait_pipeline_run()]: wait for a run to finish.
 #' * [stop_pipeline_run()]: stop a run.
+#' * [current_run]: the pipeline run the code is running in: its ID, and messages to its run page.
 #'
 #' @section Connections:
 #' * [list_connections()]: list the connections of the workspace to external systems.
