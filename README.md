@@ -36,6 +36,64 @@ publish_webapp("Malaria cases", chart)
 run_pipeline("dhis2-extract", config = list(start_date = "2024-01-01"), wait = TRUE)
 ```
 
+## A complete example, with data made in R
+
+This one runs on any workspace where you can write: the data is made in R, then shared in the workspace and read back.
+
+```r
+library(openhexa)
+login(workspace = "my-workspace") # see the example above
+
+# Some data: monthly malaria cases in four districts, with a peak in the rainy season
+set.seed(1)
+districts <- data.frame(
+  district = c("Bobo-Dioulasso", "Ouagadougou", "Koudougou", "Banfora"),
+  population = c(900000, 2500000, 160000, 120000),
+  risk = c(1.4, 0.6, 1.1, 1.8)
+)
+cases <- merge(districts, data.frame(month = seq(as.Date("2024-01-01"), by = "month", length.out = 12)))
+season <- 1 + 0.8 * sin((as.integer(format(cases$month, "%m")) - 4) / 6 * pi)
+cases$cases <- rpois(nrow(cases), cases$population / 1000 * cases$risk * season)
+
+# Share it in the workspace, as a file and as a versioned dataset
+write.csv(cases, "cases.csv", row.names = FALSE)
+upload_file("cases.csv", "examples/cases.csv")
+
+dataset <- create_dataset("Example malaria cases")$slug
+create_dataset_version(dataset, "2024")
+add_dataset_file(dataset, "cases.csv")
+
+# Read it back as a data frame, from anywhere
+get_dataset_file(dataset, "cases.csv")
+
+# Publish an interactive chart as a web app, and get its link (install.packages("plotly"))
+chart <- plotly::plot_ly(cases, x = ~month, y = ~cases, color = ~district, type = "scatter", mode = "lines")
+publish_webapp("Example malaria cases", chart)$url
+
+# Write a Quarto report on the data, render it to a single HTML file and publish it too
+# (requires Quarto, https://quarto.org, and install.packages("quarto"))
+writeLines(c(
+  "---",
+  "title: Malaria cases in 2024",
+  "format:",
+  "  html:",
+  "    embed-resources: true",
+  "---",
+  "",
+  "```{r}",
+  "#| echo: false",
+  "cases <- read.csv('cases.csv')",
+  "totals <- aggregate(cases ~ district, cases, sum)",
+  "knitr::kable(totals)",
+  "barplot(cases ~ district, data = totals)",
+  "```"
+), "report.qmd")
+quarto::quarto_render("report.qmd")
+publish_webapp("Malaria report", "report.html")$url
+```
+
+The examples below reuse `cases` and `dataset`.
+
 ## Installation
 
 The package is preinstalled in OpenHEXA notebooks. Elsewhere, install the latest release from GitHub:
@@ -84,7 +142,7 @@ list_workspaces()
 set_workspace("my-workspace")
 
 list_datasets()
-list_files("data/")
+list_files("examples/")
 list_saved_queries()
 list_webapps()
 list_pipelines()
@@ -97,66 +155,79 @@ list_datasets(workspace = "other-workspace")
 ## Get data
 
 ```r
-# A workspace file (CSV, TSV, Parquet, Excel, JSON, RDS)
-population <- get_file("data/population.csv")
+# A workspace file (CSV, TSV, Parquet, Excel, JSON, RDS), read into a data frame or just downloaded
+get_file("examples/cases.csv")
+download_file("examples/cases.csv", dest = "cases_copy.csv")
 
 # A dataset, its versions and files
-get_dataset("malaria-cases")
-list_dataset_versions("malaria-cases")
-list_dataset_files("malaria-cases")
+get_dataset(dataset)
+list_dataset_versions(dataset)
+list_dataset_files(dataset)
 
 # A dataset file, from the latest version or a given one
-cases <- get_dataset_file("malaria-cases", "cases.parquet", version = "2024-Q1")
+get_dataset_file(dataset, "cases.csv", version = "2024")
 
-# All the tables of a dataset version, stacked
-all_cases <- get_dataset_data("malaria-cases")
+# All the tables of a version, stacked, with a `file` column
+get_dataset_data(dataset)
 
-# The result of a saved query of the Data Studio
-monthly <- run_saved_query("monthly-malaria-cases", max_rows = 10000)
-
-# Raw downloads
-download_file("reports/summary.pdf")
-
-# The workspace database, with DBI / dplyr
+# The workspace database (requires DBI and RPostgres): write a table, then query it
 con <- connect_database()
+DBI::dbWriteTable(con, "example_cases", cases, overwrite = TRUE)
+DBI::dbGetQuery(con, "SELECT district, SUM(cases) AS cases FROM example_cases GROUP BY district")
+DBI::dbDisconnect(con)
+
+# Saved queries are written in the Data Studio, e.g. on the table above: run one to get its result
+queries <- list_saved_queries()
+run_saved_query(queries$slug[1], max_rows = 10000)
 ```
 
 ## Publish a web app
 
+`publish_webapp()` takes a string of HTML, an HTML file, a folder with an `index.html`, or an htmlwidget (plotly,
+leaflet, DT, ...), and returns the web app with its `url`:
+
 ```r
 publish_webapp("Hello", "<h1>Hello from R</h1>")
 
-# An htmlwidget, e.g. a plotly chart or a leaflet map (install.packages("plotly"))
-chart <- plotly::plot_ly(monthly, x = ~month, y = ~cases, type = "bar")
-app <- publish_webapp("Malaria cases", chart, public = TRUE)
+totals <- aggregate(cases ~ district, cases, sum)
+html <- paste0(
+  "<h1>Malaria cases in 2024</h1><ul>",
+  paste0("<li>", totals$district, ": ", totals$cases, "</li>", collapse = ""),
+  "</ul>"
+)
+app <- publish_webapp("Cases by district", html, public = TRUE)
 app$url
 ```
 
-Publishing again under the same name replaces the content of the web app.
+Publishing again under the same name replaces the content of the web app, so the URL stays the same.
 
 ## Create notebooks
 
 ```r
-create_notebook("analysis/malaria.ipynb", c(
+create_notebook("examples/malaria.ipynb", c(
   markdown = "# Malaria cases",
   "library(openhexa)",
-  "cases <- run_saved_query('monthly-malaria-cases')",
+  sprintf("cases <- get_dataset_file('%s', 'cases.csv')", dataset),
   "summary(cases)"
 ))
 ```
 
 ## Pipelines and connections
 
-```r
-get_pipeline("dhis2-extract") # its parameters
+Pipelines are deployed to OpenHEXA, and connections are set up in the workspace settings. From R, you run the
+pipelines and read the connections:
 
-run <- run_pipeline("dhis2-extract", config = list(start_date = "2024-01-01"), wait = TRUE)
+```r
+code <- list_pipelines()$code[1]
+get_pipeline(code) # its parameters, to pass in config, e.g. config = list(start_date = "2024-01-01")
+
+run <- run_pipeline(code, wait = TRUE)
 run$status
 run$messages
+list_pipeline_runs(code)
 
-list_pipeline_runs("dhis2-extract")
-
-dhis2 <- get_dhis2_connection("dhis2-play")
+connection <- list_connections()$identifier[1]
+get_connection(connection) # secret values are hidden when printed
 ```
 
 Inside a pipeline, such as an R notebook pipeline, send messages to the run page with `current_run`, like
@@ -164,18 +235,18 @@ Inside a pipeline, such as an R notebook pipeline, send messages to the run page
 
 ```r
 current_run$log_info("Read ", nrow(cases), " rows")
-current_run$log_warning("No data for 3 districts")
+current_run$log_info("Peak in ", format(cases$month[which.max(cases$cases)], "%B"))
 ```
 
 ## Errors and several servers
 
 Errors have classes (`openhexa_not_found_error`, `openhexa_permission_error`, ...), so they can be handled with
-`tryCatch()`:
+`tryCatch()`, e.g. to create the dataset of the example on the first run only:
 
 ```r
 dataset <- tryCatch(
-  get_dataset("malaria-cases"),
-  openhexa_not_found_error = function(e) create_dataset("Malaria cases")
+  get_dataset("example-malaria-cases")$slug,
+  openhexa_not_found_error = function(e) create_dataset("Example malaria cases")$slug
 )
 ```
 
@@ -184,150 +255,6 @@ To work with several servers or tokens in the same session, build clients and pa
 ```r
 demo <- openhexa_client("https://api.demo.openhexa.org", Sys.getenv("OPENHEXA_DEMO_TOKEN"))
 list_workspaces(client = demo)
-```
-
-## With other R packages
-
-Functions take and return plain data frames (tibbles) and files, so they fit with the packages you already use.
-
-### dplyr and tidyr
-
-```r
-library(dplyr)
-
-monthly <- get_dataset_data("routine-data", pattern = "^cases_") |>
-  group_by(district, month) |>
-  summarise(cases = sum(cases, na.rm = TRUE), .groups = "drop")
-
-tidyr::pivot_wider(monthly, names_from = month, values_from = cases)
-```
-
-### purrr: many files at once
-
-```r
-files <- list_files("data/monthly/")
-all_months <- purrr::map(files$path[grepl("\\.csv$", files$path)], get_file) |>
-  purrr::list_rbind()
-```
-
-### ggplot2, plotly and leaflet
-
-```r
-library(ggplot2)
-chart <- ggplot(monthly, aes(month, cases, colour = district)) + geom_line()
-
-# a static image, uploaded to the workspace
-ggsave("monthly_cases.png", chart, width = 8, height = 5)
-upload_file("monthly_cases.png", "outputs/charts/monthly_cases.png")
-
-# the same chart, interactive, as a web app
-publish_webapp("Monthly cases", plotly::ggplotly(chart))
-
-# a map
-facilities <- get_file("data/facilities.csv") # columns: name, lat, lng, cases
-map <- leaflet::leaflet(facilities) |>
-  leaflet::addTiles() |>
-  leaflet::addCircleMarkers(~lng, ~lat, radius = ~ sqrt(cases), label = ~name)
-publish_webapp("Facilities map", map)
-
-# geographic files, through the reader argument
-districts <- get_file("data/districts.geojson", reader = sf::st_read)
-```
-
-### arrow: Parquet dataset files
-
-```r
-arrow::write_parquet(monthly, "monthly_cases.parquet")
-create_dataset_version("malaria-indicators", "2024-12", changelog = "December extraction")
-add_dataset_file("malaria-indicators", "monthly_cases.parquet")
-```
-
-### DBI and dbplyr: the workspace database
-
-```r
-con <- connect_database()
-DBI::dbWriteTable(con, "monthly_cases", monthly, overwrite = TRUE)
-dplyr::tbl(con, "monthly_cases") |> dplyr::filter(cases > 100) |> dplyr::collect()
-DBI::dbDisconnect(con)
-```
-
-### R Markdown and Quarto reports
-
-```r
-rmarkdown::render("report.Rmd", output_file = "report.html")
-publish_webapp("Monthly report", "report.html", message = "December update")
-
-# Quarto: publish the rendered folder (it must contain an index.html)
-quarto::quarto_render("report/")
-publish_webapp("Monthly report", "report/_site/")
-```
-
-### A complete flow, with data generated locally
-
-Nothing here comes from OpenHEXA: the data is simulated in R, and OpenHEXA only receives the results (a file, a
-dataset version, a database table, web apps and a notebook). Run it on any workspace where you can write, to try the
-package or as a template for your own pipelines.
-
-```r
-library(openhexa)
-library(dplyr)
-library(ggplot2)
-set.seed(42)
-
-# 1. Simulate monthly malaria cases, with a peak in the rainy season
-districts <- tibble(
-  district = c("Bobo-Dioulasso", "Ouagadougou", "Koudougou", "Banfora"),
-  population = c(900000, 2500000, 160000, 120000),
-  lat = c(11.18, 12.37, 12.25, 10.63),
-  lng = c(-4.30, -1.52, -2.36, -4.76)
-)
-months <- seq(as.Date("2024-01-01"), as.Date("2024-12-01"), by = "month")
-cases <- tidyr::expand_grid(districts, month = months) |>
-  mutate(
-    season = 1 + 0.8 * sin((as.integer(format(month, "%m")) - 4) / 12 * 2 * pi),
-    cases = rpois(n(), population / 1000 * season),
-    incidence = round(cases / population * 1000, 2)
-  ) |>
-  select(district, month, cases, incidence, lat, lng)
-current_run$log_info("Simulated ", nrow(cases), " rows") # console, or the run page in a pipeline
-
-# 2. Upload the raw data
-readr::write_csv(cases, "simulated_cases.csv")
-upload_file("simulated_cases.csv", "simulated/simulated_cases.csv")
-
-# 3. Publish a dataset version, creating the dataset on the first run
-dataset <- tryCatch(
-  get_dataset("simulated-malaria-cases"),
-  openhexa_not_found_error = function(e) create_dataset("Simulated malaria cases")
-)
-arrow::write_parquet(cases, "cases.parquet")
-create_dataset_version(dataset, format(Sys.time(), "%Y-%m-%d %H:%M"), changelog = "New simulation")
-add_dataset_file(dataset, "cases.parquet")
-
-# 4. Write a summary table to the workspace database
-yearly <- cases |>
-  group_by(district) |>
-  summarise(cases = sum(cases), incidence = round(sum(incidence), 1))
-con <- connect_database()
-DBI::dbWriteTable(con, "simulated_yearly_cases", yearly, overwrite = TRUE)
-DBI::dbDisconnect(con)
-
-# 5. Publish a chart and a map
-chart <- ggplot(cases, aes(month, incidence, colour = district)) + geom_line()
-publish_webapp("Simulated incidence", plotly::ggplotly(chart))
-
-map <- leaflet::leaflet(left_join(yearly, districts, by = "district")) |>
-  leaflet::addTiles() |>
-  leaflet::addCircleMarkers(~lng, ~lat, radius = ~ sqrt(cases) / 10, label = ~district)
-publish_webapp("Simulated incidence map", map)
-
-# 6. Create a notebook that reads the dataset back
-create_notebook("simulated/explore.ipynb", c(
-  markdown = "# Simulated malaria cases",
-  "library(openhexa)",
-  sprintf("cases <- get_dataset_file('%s', 'cases.parquet')", dataset$slug),
-  "summary(cases)"
-), overwrite = TRUE)
 ```
 
 ## GraphQL escape hatch
