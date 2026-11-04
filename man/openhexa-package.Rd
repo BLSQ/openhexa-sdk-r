@@ -164,7 +164,7 @@ dhis2 <- get_dhis2_connection("dhis2-play")
 \section{Anything else}{
 
 \itemize{
-\item \code{\link[=graphql_query]{graphql_query()}}: run any query against the OpenHEXA API.
+\item \code{\link[=graphql_query]{graphql_query()}}: run any query against the OpenHEXA API. Not stable: the API changes without notice.
 }
 }
 

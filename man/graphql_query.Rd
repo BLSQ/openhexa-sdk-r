@@ -20,6 +20,20 @@ The \code{data} field of the response, as a nested list.
 This is the escape hatch for everything the package does not cover with a dedicated function. See the
 schema at \verb{<server>/graphql/} for what is available.
 }
+\section{Stability}{
+
+\strong{The OpenHEXA GraphQL API is not part of the stable interface of this package.} Its schema is internal to
+OpenHEXA and changes with the server, without notice nor deprecation period: fields and arguments can be renamed
+or removed, and a query that works today can fail after the next OpenHEXA release, even if you don't update this
+package. Semantic versioning of the package does not cover these queries.
+
+Prefer the dedicated functions whenever possible: they are kept working across OpenHEXA releases. If you rely on
+\code{graphql_query()} for something they don't do, let the maintainers know: they will happily add a function for
+it.
+
+A message recalls this once per session. Silence it with \code{options(openhexa.quiet_graphql = TRUE)}.
+}
+
 \examples{
 \dontrun{
 graphql_query(

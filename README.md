@@ -3,6 +3,11 @@
 The `openhexa` package is the R client for [OpenHEXA](https://github.com/BLSQ/openhexa): explore workspaces, load data
 into data frames, publish web apps and run pipelines in an easy and efficient manner.
 
+In OpenHEXA, data and analyses are organised in **workspaces**, which hold files, versioned **datasets**, a PostgreSQL
+**database** with **saved queries**, **pipelines**, **web apps** and **connections** to external systems such as DHIS2
+or IASO. The package works with all of them, from an OpenHEXA notebook, from RStudio, or from a script running
+anywhere.
+
 ## Example
 
 ```r
@@ -30,6 +35,66 @@ publish_webapp("Malaria cases", chart)
 # Run a pipeline and wait for the result
 run_pipeline("dhis2-extract", config = list(start_date = "2024-01-01"), wait = TRUE)
 ```
+
+## A complete example, with data made in R
+
+This one runs on any workspace where you can write: the data is made in R, then shared in the workspace and read back.
+
+```r
+library(openhexa)
+login(workspace = "my-workspace") # see the example above
+
+# Some data: monthly malaria cases in four districts, with a peak in the rainy season
+set.seed(1)
+districts <- data.frame(
+  district = c("Bobo-Dioulasso", "Ouagadougou", "Koudougou", "Banfora"),
+  population = c(900000, 2500000, 160000, 120000),
+  risk = c(1.4, 0.6, 1.1, 1.8)
+)
+cases <- merge(districts, data.frame(month = seq(as.Date("2024-01-01"), by = "month", length.out = 12)))
+season <- 1 + 0.8 * sin((as.integer(format(cases$month, "%m")) - 4) / 6 * pi)
+cases$cases <- rpois(nrow(cases), cases$population / 1000 * cases$risk * season)
+
+# Share it in the workspace, as a file and as a versioned dataset
+write.csv(cases, "cases.csv", row.names = FALSE)
+upload_file("cases.csv", "examples/cases.csv")
+
+dataset <- create_dataset("Example malaria cases")$slug
+create_dataset_version(dataset, "2024")
+add_dataset_file(dataset, "cases.csv")
+
+# Read it back as a data frame, from anywhere
+get_dataset_file(dataset, "cases.csv")
+
+# Publish an interactive chart as a web app, and get its link (install.packages("plotly"))
+chart <- plotly::plot_ly(cases, x = ~month, y = ~cases, color = ~district, type = "scatter", mode = "lines")
+publish_webapp("Example malaria cases", chart)$url
+
+# Write a Quarto report on the data, render it to a single HTML file and publish it too
+# (requires Quarto, https://quarto.org, and install.packages("quarto"))
+writeLines(c(
+  "---",
+  "title: Malaria cases in 2024",
+  "format:",
+  "  html:",
+  "    embed-resources: true",
+  "---",
+  "",
+  "```{r}",
+  "#| echo: false",
+  "cases <- read.csv('cases.csv')",
+  "totals <- aggregate(cases ~ district, cases, sum)",
+  "knitr::kable(totals)",
+  "barplot(cases ~ district, data = totals)",
+  "```"
+), "report.qmd")
+quarto::quarto_render("report.qmd")
+publish_webapp("Malaria report", "report.html")$url
+```
+
+The published report:
+
+<img src="man/figures/example-report.png" alt="The published report: a table and a bar chart of malaria cases by district in 2024" width="600">
 
 ## Installation
 
@@ -79,78 +144,136 @@ list_workspaces()
 set_workspace("my-workspace")
 
 list_datasets()
-list_files("data/")
+list_files("examples/")
 list_saved_queries()
 list_webapps()
 list_pipelines()
 list_connections()
+
+# Every function also takes a workspace, to work with another one without switching
+list_datasets(workspace = "other-workspace")
 ```
 
 ## Get data
 
+The file and the dataset below are the ones created by the complete example above: replace them with your own.
+
 ```r
-# A workspace file (CSV, TSV, Parquet, Excel, JSON, RDS)
-population <- get_file("data/population.csv")
+# A workspace file (CSV, TSV, Parquet, Excel, JSON, RDS), read into a data frame or just downloaded
+cases <- get_file("examples/cases.csv")
+download_file("examples/cases.csv", dest = "cases_copy.csv")
+
+# A dataset, its versions and files
+get_dataset("example-malaria-cases")
+list_dataset_versions("example-malaria-cases")
+list_dataset_files("example-malaria-cases")
 
 # A dataset file, from the latest version or a given one
-cases <- get_dataset_file("malaria-cases", "cases.parquet", version = "2024-Q1")
+get_dataset_file("example-malaria-cases", "cases.csv", version = "2024")
 
-# All the tables of a dataset version, stacked
-all_cases <- get_dataset_data("malaria-cases")
+# All the tables of a version, stacked, with a `file` column
+get_dataset_data("example-malaria-cases")
 
-# The result of a saved query of the Data Studio
-monthly <- run_saved_query("monthly-malaria-cases", max_rows = 10000)
-
-# Raw downloads
-download_file("reports/summary.pdf")
-
-# The workspace database, with DBI / dplyr
+# The workspace database (requires DBI and RPostgres): write a table, then query it
 con <- connect_database()
+DBI::dbWriteTable(con, "example_cases", cases, overwrite = TRUE)
+DBI::dbGetQuery(con, "SELECT district, SUM(cases) AS cases FROM example_cases GROUP BY district")
+DBI::dbDisconnect(con)
+
+# Saved queries are written in the Data Studio, e.g. on the table above: run one to get its result
+queries <- list_saved_queries()
+run_saved_query(queries$slug[1], max_rows = 10000)
 ```
 
 ## Publish a web app
 
+`publish_webapp()` takes a string of HTML, an HTML file, a folder with an `index.html`, or an htmlwidget (plotly,
+leaflet, DT, ...), and returns the web app with its `url`:
+
 ```r
 publish_webapp("Hello", "<h1>Hello from R</h1>")
 
-# An htmlwidget, e.g. a plotly chart or a leaflet map (install.packages("plotly"))
-chart <- plotly::plot_ly(monthly, x = ~month, y = ~cases, type = "bar")
-app <- publish_webapp("Malaria cases", chart, public = TRUE)
+# HTML built from data
+cases <- get_file("examples/cases.csv")
+totals <- aggregate(cases ~ district, cases, sum)
+html <- paste0(
+  "<h1>Malaria cases in 2024</h1><ul>",
+  paste0("<li>", totals$district, ": ", totals$cases, "</li>", collapse = ""),
+  "</ul>"
+)
+app <- publish_webapp("Cases by district", html, public = TRUE)
 app$url
 ```
 
-Publishing again under the same name replaces the content of the web app.
+Publishing again under the same name replaces the content of the web app, so the URL stays the same.
 
 ## Create notebooks
 
 ```r
-create_notebook("analysis/malaria.ipynb", c(
+create_notebook("examples/malaria.ipynb", c(
   markdown = "# Malaria cases",
   "library(openhexa)",
-  "cases <- run_saved_query('monthly-malaria-cases')",
+  "cases <- get_dataset_file('example-malaria-cases', 'cases.csv')",
   "summary(cases)"
 ))
 ```
 
 ## Pipelines and connections
 
-```r
-run <- run_pipeline("dhis2-extract", config = list(start_date = "2024-01-01"), wait = TRUE)
-run$messages
+Pipelines are deployed to OpenHEXA, and connections are set up in the workspace settings. From R, you run the
+pipelines and read the connections:
 
-dhis2 <- get_dhis2_connection("dhis2-play")
+```r
+code <- list_pipelines()$code[1]
+get_pipeline(code) # its parameters, to pass in config, e.g. config = list(start_date = "2024-01-01")
+
+run <- run_pipeline(code, wait = TRUE)
+run$status
+run$messages
+list_pipeline_runs(code)
+
+connection <- list_connections()$identifier[1]
+get_connection(connection) # secret values are hidden when printed
 ```
 
 Inside a pipeline, such as an R notebook pipeline, send messages to the run page with `current_run`, like
 `current_run.log_info()` in Python. Outside a pipeline, they are printed in the console.
 
 ```r
+cases <- get_file("examples/cases.csv")
 current_run$log_info("Read ", nrow(cases), " rows")
-current_run$log_warning("No data for 3 districts")
+current_run$log_info("Peak in ", format(cases$month[which.max(cases$cases)], "%B"))
 ```
 
-See `vignette("openhexa")` for a complete walkthrough. For anything else, `graphql_query()` runs any query against
-the OpenHEXA API.
+## Errors and several servers
+
+Errors have classes (`openhexa_not_found_error`, `openhexa_permission_error`, ...), so they can be handled with
+`tryCatch()`, e.g. to create the dataset of the complete example on the first run only:
+
+```r
+dataset <- tryCatch(
+  get_dataset("example-malaria-cases")$slug,
+  openhexa_not_found_error = function(e) create_dataset("Example malaria cases")$slug
+)
+```
+
+To work with several servers or tokens in the same session, build clients and pass them as `client`:
+
+```r
+demo <- openhexa_client("https://api.demo.openhexa.org", Sys.getenv("OPENHEXA_DEMO_TOKEN"))
+list_workspaces(client = demo)
+```
+
+## GraphQL escape hatch
+
+For anything else, `graphql_query()` runs any query against the OpenHEXA GraphQL API.
+
+> [!WARNING]
+> The GraphQL API is internal to OpenHEXA and **changes without notice**: a query that works today can break after
+> the next OpenHEXA release, even if you don't update this package, and semantic versioning doesn't cover it. Use the
+> dedicated functions whenever they exist; if you need something they don't do, let the maintainers know and they
+> will happily add a function for it. A message recalls this once per session
+> (`options(openhexa.quiet_graphql = TRUE)` silences it).
 
 ## Development
 
@@ -183,7 +306,7 @@ make smoke     # run every tier against the demo server, see tools/smoke_test.R
    [app.demo.openhexa.org](https://app.demo.openhexa.org), then:
 
    ```r
-   login() # opens a dialog: pick "OpenHEXA demo" in the dropdown, then paste the token
+   login() # opens a dialog: pick "Custom API URL", enter https://api.demo.openhexa.org, then paste the token
    list_workspaces()
    set_workspace("my-workspace")
    list_datasets()

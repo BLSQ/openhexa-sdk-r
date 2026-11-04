@@ -235,8 +235,7 @@ verify_ssl <- function() {
 
 # Servers offered by login() in interactive sessions, besides a custom API URL.
 known_servers <- c(
-  "OpenHEXA (api.openhexa.org)" = "https://api.openhexa.org",
-  "OpenHEXA demo (api.demo.openhexa.org)" = "https://api.demo.openhexa.org"
+  "OpenHEXA (api.openhexa.org)" = "https://api.openhexa.org"
 )
 
 ask_server_url <- function() {

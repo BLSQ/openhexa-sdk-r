@@ -8,6 +8,3 @@
 openhexa.Rcheck/
 __pycache__/
 .Renviron
-inst/doc
-/doc/
-/Meta/

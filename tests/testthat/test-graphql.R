@@ -4,6 +4,7 @@ test_that("graphql_query() returns the data and drops NULL variables", {
     sent <<- req
     httr2::response_json(body = list(data = list(answer = 42)))
   })
+  withr::local_options(openhexa.quiet_graphql = TRUE)
   data <- graphql_query("query Q($a: Int, $b: Int) { answer }", list(a = 1, b = NULL))
   expect_equal(data, list(answer = 42))
   expect_equal(sent$url, paste0(test_server_url, "/graphql/"))
@@ -15,8 +16,29 @@ test_that("GraphQL errors are raised", {
   httr2::local_mocked_responses(function(req) {
     httr2::response_json(body = list(data = NULL, errors = list(list(message = "Cannot query field \"nope\""))))
   })
+  withr::local_options(openhexa.quiet_graphql = TRUE)
   expect_error(graphql_query("{ nope }"), class = "openhexa_graphql_error")
   expect_error(graphql_query("{ nope }"), "Cannot query field")
+})
+
+test_that("graphql_query() warns once per session that the API can change, unless silenced", {
+  httr2::local_mocked_responses(function(req) httr2::response_json(body = list(data = list(answer = 42))))
+  rlang::reset_message_verbosity("openhexa_graphql_query")
+  withr::defer(rlang::reset_message_verbosity("openhexa_graphql_query"))
+
+  expect_message(graphql_query("{ answer }"), "can change without notice", class = "openhexa_graphql_unstable_message")
+  expect_no_message(graphql_query("{ answer }"))
+
+  rlang::reset_message_verbosity("openhexa_graphql_query")
+  withr::local_options(openhexa.quiet_graphql = TRUE)
+  expect_no_message(graphql_query("{ answer }"))
+})
+
+test_that("the functions of the package don't show the stability message", {
+  httr2::local_mocked_responses(function(req) httr2::response_json(body = list(data = list(answer = 42))))
+  rlang::reset_message_verbosity("openhexa_graphql_query")
+  withr::defer(rlang::reset_message_verbosity("openhexa_graphql_query"))
+  expect_no_message(graphql_op("Me"))
 })
 
 test_that("empty variables are sent as a JSON object", {

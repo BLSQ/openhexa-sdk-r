@@ -91,6 +91,22 @@ test_that("upload errors are explained", {
   expect_error(add_dataset_file("population", "missing.csv"), class = "openhexa_file_not_found_error")
 })
 
+test_that("create_dataset() creates a dataset, always with a description", {
+  sent <- server$answer(
+    CreateDataset = list(createDataset = test_success(dataset = list(slug = "population"))),
+    DatasetLinkBySlug = dataset_link()
+  )
+  out <- create_dataset("Population")
+  expect_s3_class(out, "openhexa_dataset")
+  expect_equal(
+    sent$calls[[1]]$variables$input,
+    list(workspaceSlug = "test-workspace", name = "Population", description = "")
+  )
+
+  create_dataset("Population", description = "Census")
+  expect_equal(sent$calls[[3]]$variables$input$description, "Census")
+})
+
 test_that("create_dataset_version() creates a version", {
   sent <- server$answer(
     DatasetLinkBySlug = dataset_link(),
