@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/BLSQ/openhexa-sdk-r/compare/v0.1.1...v0.1.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* improve documentation  ([#4](https://github.com/BLSQ/openhexa-sdk-r/issues/4)) ([db38690](https://github.com/BLSQ/openhexa-sdk-r/commit/db38690400ba3353533500bbda28da263e5d05cf))
+
 ## [0.1.1](https://github.com/BLSQ/openhexa-sdk-r/compare/v0.1.0...v0.1.1) (2026-10-29)
 
 
