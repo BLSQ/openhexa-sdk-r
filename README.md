@@ -156,21 +156,23 @@ list_datasets(workspace = "other-workspace")
 
 ## Get data
 
+The file and the dataset below are the ones created by the complete example above: replace them with your own.
+
 ```r
 # A workspace file (CSV, TSV, Parquet, Excel, JSON, RDS), read into a data frame or just downloaded
-get_file("examples/cases.csv")
+cases <- get_file("examples/cases.csv")
 download_file("examples/cases.csv", dest = "cases_copy.csv")
 
 # A dataset, its versions and files
-get_dataset(dataset)
-list_dataset_versions(dataset)
-list_dataset_files(dataset)
+get_dataset("example-malaria-cases")
+list_dataset_versions("example-malaria-cases")
+list_dataset_files("example-malaria-cases")
 
 # A dataset file, from the latest version or a given one
-get_dataset_file(dataset, "cases.csv", version = "2024")
+get_dataset_file("example-malaria-cases", "cases.csv", version = "2024")
 
 # All the tables of a version, stacked, with a `file` column
-get_dataset_data(dataset)
+get_dataset_data("example-malaria-cases")
 
 # The workspace database (requires DBI and RPostgres): write a table, then query it
 con <- connect_database()
@@ -191,6 +193,8 @@ leaflet, DT, ...), and returns the web app with its `url`:
 ```r
 publish_webapp("Hello", "<h1>Hello from R</h1>")
 
+# HTML built from data
+cases <- get_file("examples/cases.csv")
 totals <- aggregate(cases ~ district, cases, sum)
 html <- paste0(
   "<h1>Malaria cases in 2024</h1><ul>",
@@ -209,7 +213,7 @@ Publishing again under the same name replaces the content of the web app, so the
 create_notebook("examples/malaria.ipynb", c(
   markdown = "# Malaria cases",
   "library(openhexa)",
-  sprintf("cases <- get_dataset_file('%s', 'cases.csv')", dataset),
+  "cases <- get_dataset_file('example-malaria-cases', 'cases.csv')",
   "summary(cases)"
 ))
 ```
@@ -236,6 +240,7 @@ Inside a pipeline, such as an R notebook pipeline, send messages to the run page
 `current_run.log_info()` in Python. Outside a pipeline, they are printed in the console.
 
 ```r
+cases <- get_file("examples/cases.csv")
 current_run$log_info("Read ", nrow(cases), " rows")
 current_run$log_info("Peak in ", format(cases$month[which.max(cases$cases)], "%B"))
 ```
@@ -243,7 +248,7 @@ current_run$log_info("Peak in ", format(cases$month[which.max(cases$cases)], "%B
 ## Errors and several servers
 
 Errors have classes (`openhexa_not_found_error`, `openhexa_permission_error`, ...), so they can be handled with
-`tryCatch()`, e.g. to create the dataset of the example on the first run only:
+`tryCatch()`, e.g. to create the dataset of the complete example on the first run only:
 
 ```r
 dataset <- tryCatch(
