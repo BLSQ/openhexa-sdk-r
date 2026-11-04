@@ -3,6 +3,18 @@
 #' This is the escape hatch for everything the package does not cover with a dedicated function. See the
 #' schema at `<server>/graphql/` for what is available.
 #'
+#' @section Stability:
+#' **The OpenHEXA GraphQL API is not part of the stable interface of this package.** Its schema is internal to
+#' OpenHEXA and changes with the server, without notice nor deprecation period: fields and arguments can be renamed
+#' or removed, and a query that works today can fail after the next OpenHEXA release, even if you don't update this
+#' package. Semantic versioning of the package does not cover these queries.
+#'
+#' Prefer the dedicated functions whenever possible: they are kept working across OpenHEXA releases. If you rely on
+#' `graphql_query()` for something they don't do, let the maintainers know: they will happily add a function for
+#' it.
+#'
+#' A message recalls this once per session. Silence it with `options(openhexa.quiet_graphql = TRUE)`.
+#'
 #' @param query A GraphQL document, as a string.
 #' @param variables A named list of variables. `NULL` values are dropped.
 #' @inheritParams get_user
@@ -17,6 +29,25 @@
 #' )
 #' }
 graphql_query <- function(query, variables = list(), client = NULL) {
+  if (!isTRUE(getOption("openhexa.quiet_graphql"))) {
+    rlang::inform(
+      c(
+        "!" = "`graphql_query()` uses the internal OpenHEXA API, which can change without notice.",
+        i = "Queries may break after an OpenHEXA release. Prefer the dedicated functions of the package when they exist.",
+        i = "Need something they don't do? Let the maintainers know: they will happily add a function for it.",
+        i = "Silence this message with `options(openhexa.quiet_graphql = TRUE)`."
+      ),
+      .frequency = "once",
+      .frequency_id = "openhexa_graphql_query",
+      class = "openhexa_graphql_unstable_message"
+    )
+  }
+  graphql_request(query, variables, client)
+}
+
+# Sends a GraphQL request. The package goes through this (or graphql_op()), never through graphql_query(), so that
+# the stability message is only shown for queries written by users.
+graphql_request <- function(query, variables = list(), client = NULL) {
   client <- client %||% openhexa_client()
 
   req <- httr2::request(paste0(client$server_url, "/graphql/")) |>
@@ -41,7 +72,7 @@ graphql_query <- function(query, variables = list(), client = NULL) {
 
 # Run one of the operations shipped in inst/graphql/.
 graphql_op <- function(name, variables = list(), client = NULL) {
-  graphql_query(operation(name), variables, client)
+  graphql_request(operation(name), variables, client)
 }
 
 operation <- function(name) {
