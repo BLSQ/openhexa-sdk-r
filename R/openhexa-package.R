@@ -115,7 +115,7 @@
 #' * [get_custom_connection()]: get a custom connection.
 #'
 #' @section Anything else:
-#' * [graphql_query()]: run any query against the OpenHEXA API.
+#' * [graphql_query()]: run any query against the OpenHEXA API. Not stable: the API changes without notice.
 #'
 #' @keywords internal
 "_PACKAGE"
