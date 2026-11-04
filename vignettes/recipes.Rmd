@@ -1,0 +1,227 @@
+---
+title: "Recipes: openhexa with common R packages"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Recipes: openhexa with common R packages}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+The openhexa functions take and return plain data frames (tibbles) and files, so they fit with the packages you
+already use. This vignette collects short recipes, then puts them together in a complete flow where all the data is
+generated in R and OpenHEXA only receives the results.
+
+The recipes assume that you are logged in and a workspace is selected (see `vignette("openhexa")`):
+
+```{r}
+library(openhexa)
+login(server_url = "https://api.openhexa.org", workspace = "my-workspace")
+```
+
+## dplyr and tidyr: transform
+
+`get_file()`, `get_dataset_file()`, `get_dataset_data()` and `run_saved_query()` return tibbles, ready for dplyr:
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+cases <- get_dataset_data("routine-data", pattern = "^cases_")
+
+monthly <- cases |>
+  group_by(district, month) |>
+  summarise(cases = sum(cases, na.rm = TRUE), .groups = "drop")
+
+# one column per month, e.g. for a report table
+monthly |> pivot_wider(names_from = month, values_from = cases)
+```
+
+## purrr: many files at once
+
+`list_files()` and `list_dataset_files()` return tibbles too, so you can loop over their rows:
+
+```{r}
+library(purrr)
+
+reports <- list_files("data/monthly/")
+reports <- reports[grepl("\\.csv$", reports$path), ]
+
+all_months <- map(reports$path, get_file) |> list_rbind(names_to = "file")
+```
+
+## ggplot2: static charts
+
+Save the chart to a file, then upload it, to share it in the workspace or embed it in a report:
+
+```{r}
+library(ggplot2)
+
+chart <- ggplot(monthly, aes(month, cases, colour = district)) +
+  geom_line() +
+  labs(title = "Monthly malaria cases", x = NULL, y = "Cases")
+
+png <- tempfile(fileext = ".png")
+ggsave(png, chart, width = 8, height = 5)
+upload_file(png, "outputs/charts/monthly_cases.png")
+```
+
+## plotly and leaflet: interactive web apps
+
+`publish_webapp()` accepts any htmlwidget. A ggplot2 chart becomes interactive with `plotly::ggplotly()`:
+
+```{r}
+publish_webapp("Monthly cases", plotly::ggplotly(chart), description = "Monthly malaria cases by district")
+```
+
+A map with leaflet, from a table with coordinates:
+
+```{r}
+library(leaflet)
+
+facilities <- get_file("data/facilities.csv") # columns: name, lat, lng, cases
+
+map <- leaflet(facilities) |>
+  addTiles() |>
+  addCircleMarkers(~lng, ~lat, radius = ~ sqrt(cases), label = ~name)
+
+publish_webapp("Facilities map", map)
+```
+
+For maps from geographic files, read them with sf through the `reader` argument:
+
+```{r}
+districts <- get_file("data/districts.geojson", reader = sf::st_read)
+```
+
+## arrow: Parquet datasets
+
+Parquet keeps the column types and is much smaller than CSV: it is the best format for dataset files. Reading
+Parquet works out of the box once arrow is installed; to write, use `arrow::write_parquet()`:
+
+```{r}
+path <- file.path(tempdir(), "monthly_cases.parquet")
+arrow::write_parquet(monthly, path)
+
+create_dataset_version("malaria-indicators", "2024-12", changelog = "December extraction")
+add_dataset_file("malaria-indicators", path)
+```
+
+## DBI and dbplyr: the workspace database
+
+`connect_database()` returns a standard DBI connection. Write tables so that they can be used in the Data Studio,
+in saved queries, or in dashboards connected to the database:
+
+```{r}
+con <- connect_database()
+
+DBI::dbWriteTable(con, "monthly_cases", monthly, overwrite = TRUE)
+
+# let the database do the work with dbplyr, then collect the result
+tbl(con, "monthly_cases") |>
+  filter(cases > 100) |>
+  count(district) |>
+  collect()
+
+DBI::dbDisconnect(con)
+```
+
+## R Markdown and Quarto: reports
+
+Render a report to a self-contained HTML file, and publish it as a web app. Publishing again under the same name
+updates it at the same URL:
+
+```{r}
+rmarkdown::render("report.Rmd", output_file = "report.html", output_dir = tempdir())
+publish_webapp("Monthly report", file.path(tempdir(), "report.html"), message = "December update")
+
+# with Quarto, render to a folder and publish the whole folder (it must contain an index.html)
+quarto::quarto_render("report/") # writes report/_site/
+publish_webapp("Monthly report", "report/_site/")
+```
+
+## A complete flow, with data generated locally
+
+Nothing in this flow comes from OpenHEXA: the data is simulated in R, so you can run it on any workspace where you
+can write, to try the package or as a template for your own pipelines. OpenHEXA only receives the results: a
+file, a dataset version, a database table, a web app and a notebook.
+
+```{r}
+library(openhexa)
+library(dplyr)
+library(ggplot2)
+
+set.seed(42)
+
+# 1. Simulate monthly cases for a few districts, with a seasonal peak in the rainy season
+districts <- tibble(
+  district = c("Bobo-Dioulasso", "Ouagadougou", "Koudougou", "Banfora"),
+  population = c(900000, 2500000, 160000, 120000),
+  lat = c(11.18, 12.37, 12.25, 10.63),
+  lng = c(-4.30, -1.52, -2.36, -4.76)
+)
+months <- seq(as.Date("2024-01-01"), as.Date("2024-12-01"), by = "month")
+
+cases <- tidyr::expand_grid(districts, month = months) |>
+  mutate(
+    season = 1 + 0.8 * sin((as.integer(format(month, "%m")) - 4) / 12 * 2 * pi),
+    cases = rpois(n(), population / 1000 * season),
+    incidence = round(cases / population * 1000, 2)
+  ) |>
+  select(district, month, cases, incidence, lat, lng)
+
+current_run$log_info("Simulated ", nrow(cases), " rows") # printed in the console, or sent to the run page
+
+# 2. Upload the raw data as a CSV file
+csv <- file.path(tempdir(), "simulated_cases.csv")
+readr::write_csv(cases, csv)
+upload_file(csv, "simulated/simulated_cases.csv")
+
+# 3. Publish it as a new version of a dataset, created on the first run
+dataset <- tryCatch(
+  get_dataset("simulated-malaria-cases"),
+  openhexa_not_found_error = function(e) {
+    create_dataset("Simulated malaria cases", description = "Simulated with the openhexa R package")
+  }
+)
+parquet <- file.path(tempdir(), "cases.parquet")
+arrow::write_parquet(cases, parquet)
+create_dataset_version(dataset, format(Sys.time(), "%Y-%m-%d %H:%M"), changelog = "New simulation")
+add_dataset_file(dataset, parquet)
+
+# 4. Write a summary table to the workspace database
+yearly <- cases |>
+  group_by(district) |>
+  summarise(cases = sum(cases), incidence = round(sum(incidence), 1))
+
+con <- connect_database()
+DBI::dbWriteTable(con, "simulated_yearly_cases", yearly, overwrite = TRUE)
+DBI::dbDisconnect(con)
+
+# 5. Publish a chart and a map as web apps
+chart <- ggplot(cases, aes(month, incidence, colour = district)) +
+  geom_line() +
+  labs(title = "Simulated malaria incidence (per 1,000)", x = NULL, y = NULL)
+publish_webapp("Simulated incidence", plotly::ggplotly(chart))
+
+map <- leaflet::leaflet(left_join(yearly, districts, by = "district")) |>
+  leaflet::addTiles() |>
+  leaflet::addCircleMarkers(~lng, ~lat, radius = ~ sqrt(cases) / 10, label = ~district)
+publish_webapp("Simulated incidence map", map)
+
+# 6. Create a notebook that reads the dataset back, for colleagues to explore
+create_notebook("simulated/explore.ipynb", c(
+  markdown = "# Simulated malaria cases",
+  "library(openhexa)",
+  sprintf("cases <- get_dataset_file('%s', 'cases.parquet')", dataset$slug),
+  "summary(cases)"
+), overwrite = TRUE)
+
+current_run$log_info("Published the simulated data")
+```
+
+To run it on a schedule, save it as an R script and start it from a pipeline: `current_run` then sends the
+messages to the run page instead of the console.
