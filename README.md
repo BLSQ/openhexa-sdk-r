@@ -149,8 +149,19 @@ current_run$log_info("Read ", nrow(cases), " rows")
 current_run$log_warning("No data for 3 districts")
 ```
 
-See `vignette("openhexa")` for a complete walkthrough. For anything else, `graphql_query()` runs any query against
-the OpenHEXA API.
+See `vignette("openhexa")` for a complete walkthrough, and `vignette("recipes")` for examples with dplyr, ggplot2,
+plotly, leaflet, arrow, DBI and R Markdown, including a flow that only publishes data generated locally.
+
+## GraphQL escape hatch
+
+For anything else, `graphql_query()` runs any query against the OpenHEXA GraphQL API.
+
+> [!WARNING]
+> The GraphQL API is internal to OpenHEXA and **changes without notice**: a query that works today can break after
+> the next OpenHEXA release, even if you don't update this package, and semantic versioning doesn't cover it. Use the
+> dedicated functions whenever they exist; if you need something they don't do, let the maintainers know and they
+> will happily add a function for it. A message recalls this once per session
+> (`options(openhexa.quiet_graphql = TRUE)` silences it).
 
 ## Development
 
