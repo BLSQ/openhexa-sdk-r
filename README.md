@@ -194,7 +194,7 @@ make smoke     # run every tier against the demo server, see tools/smoke_test.R
    [app.demo.openhexa.org](https://app.demo.openhexa.org), then:
 
    ```r
-   login() # opens a dialog: pick "OpenHEXA demo" in the dropdown, then paste the token
+   login() # opens a dialog: pick "Custom API URL", enter https://api.demo.openhexa.org, then paste the token
    list_workspaces()
    set_workspace("my-workspace")
    list_datasets()

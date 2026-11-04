@@ -86,9 +86,9 @@ test_that("server URLs are accepted as users type or copy them", {
 test_that("login() offers the known servers", {
   provide_credentials(server_url = NULL, token = "env-token", workspace = NULL)
   rlang::local_interactive()
-  local_mocked_bindings(ask_menu = function(choices, title) 2L)
+  local_mocked_bindings(ask_menu = function(choices, title) 1L)
   login(verify = FALSE)
-  expect_equal(openhexa_client()$server_url, unname(known_servers[[2]]))
+  expect_equal(openhexa_client()$server_url, unname(known_servers[[1]]))
 
   logout()
   local_mocked_bindings(ask_menu = function(choices, title) 0L)

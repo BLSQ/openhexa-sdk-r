@@ -77,8 +77,8 @@ test_that("login() with arguments doesn't reopen the dialog when nothing is miss
 
 test_that("the login dialog is filled in with the current values when they can be changed", {
   skip_if_not_installed("shiny")
-  html <- as.character(login_gadget_ui(TRUE, TRUE, "https://api.demo.openhexa.org/", "my-token"))
-  expect_match(html, '<option value="https://api.demo.openhexa.org" selected>', fixed = TRUE)
+  html <- as.character(login_gadget_ui(TRUE, TRUE, "https://api.openhexa.org/", "my-token"))
+  expect_match(html, '<option value="https://api.openhexa.org" selected>', fixed = TRUE)
   expect_match(html, 'value="my-token"', fixed = TRUE)
 
   html <- as.character(login_gadget_ui(TRUE, TRUE, "https://api.my-openhexa.example", NULL))
