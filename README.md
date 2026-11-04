@@ -92,7 +92,9 @@ quarto::quarto_render("report.qmd")
 publish_webapp("Malaria report", "report.html")$url
 ```
 
-The examples below reuse `cases` and `dataset`.
+The published report:
+
+<img src="man/figures/example-report.png" alt="The published report: a table and a bar chart of malaria cases by district in 2024" width="600">
 
 ## Installation
 

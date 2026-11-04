@@ -194,7 +194,8 @@ get_dataset_data <- function(dataset, version = NULL, pattern = NULL, ..., works
 #' @export
 create_dataset <- function(name, description = NULL, workspace = NULL, client = NULL) {
   workspace <- resolve_workspace(workspace)
-  input <- compact(list(workspaceSlug = workspace, name = name, description = description))
+  # The API fails without a description, although its schema says that it's optional.
+  input <- list(workspaceSlug = workspace, name = name, description = description %||% "")
   result <- graphql_op("CreateDataset", list(input = input), client)$createDataset
   check_mutation(result, c(PERMISSION_DENIED = "You don't have permission to create datasets in this workspace."))
   get_dataset(result$dataset$slug, workspace, client)
