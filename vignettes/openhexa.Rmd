@@ -253,8 +253,12 @@ dhis2$url
 
 ## Going further
 
+- `vignette("recipes")` shows the package with dplyr, ggplot2, plotly, leaflet, arrow, DBI and R Markdown, and a
+  flow that only publishes data generated locally.
 - `graphql_query()` runs any query against the OpenHEXA [GraphQL API](https://api.openhexa.org/graphql/), for what
-  the package does not cover.
+  the package does not cover. **This API is internal to OpenHEXA and changes without notice**: queries can break
+  after any OpenHEXA release, whatever the version of the package. Prefer the dedicated functions; if you need
+  something they don't do, let the maintainers know and they will happily add a function for it.
 - Errors have classes (`openhexa_not_found_error`, `openhexa_permission_error`, ...), so they can be handled with
   `tryCatch()`.
 - To work with several servers in the same session, build clients with `openhexa_client()` and pass them as
